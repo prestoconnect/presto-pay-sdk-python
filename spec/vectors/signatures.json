@@ -1,0 +1,47 @@
+{
+  "$comment": "Canonical string -> Base64 RSASSA-PKCS1-v1_5/SHA-256 signature under keys/test-merchant-key.pem, verifiable with keys/test-merchant-public.pem or keys/test-merchant-cert.pem. Regenerate with scripts/sign-vectors.mjs; PKCS#1 v1.5 is deterministic, so the output is stable.",
+  "key": "keys/test-merchant-key.pem",
+  "algorithm": "RSASSA-PKCS1-v1_5 / SHA-256 / Base64 with padding",
+  "cases": [
+    {
+      "name": "presto-worked-example",
+      "note": "The canonical string from canonical.json, signed with the throwaway key rather than the merchant one.",
+      "canonical": "1200:MYR:Order #12345:PW2401XH9KCX:https://merchant.example.com/webhook/notify:PM240110XDSFC:https://merchant.example.com/redirect/TXN10001:20250423104500.000:TXN10001:WebPay",
+      "signature": "Te3bcxHtBkaVVahjVcViIzknRiKl4hg1N+HITCqlV6Dbtn4xYpfEd5CPfqS4yhZahXi36yG6S4xVkZTFkH7CxO5Xz7qEFi2wfK+gCrzEXGqqsZoQmcsWD2MRbB+j/SPISBDX6KmZhzV+Eax6BLEbBm0ZJEEkLosPd9zOfXgCAjrMRB+bj1caxbH/0/dZblgsQvXajqqF5cxE4OxYLmj2o5roh4i3BbQAhjyMQ0V60lZGLQIrv/Q5W/i331LrDgUhBppmnnpxCqcCukLY3KE0cAW7gk6ak9Tu6LwrELBHrbrZmeXk4BfeLVPQYYQWTArzBTPICEKt0yQ6aI93gTJuKQ=="
+    },
+    {
+      "name": "null-bearing-init-response",
+      "note": "Leading separator from a null-valued first key.",
+      "canonical": ":200:MYR::::PP260924K4H3DSF:20260924133756.056:PendingAuthorise:https://hpp-staging.prestouniverse.com/PM181019QGJWH4K/PP260924K4H3DSF:PM181019QGJWH4K:true:20260924133756.056:PM202609244E33DA4FCCC7445B99821588791F2418:",
+      "signature": "JSFaiwYtWBroY3slcH3/IFj42QKJgeU26sAyqndJqPxkNGfnplUr9Lh4f5GtEIvuIKNH+X4rqecWHSlVGqEwcO++qg7OL3jnsuAbjbgC2ia6iQgVKBLrVmodavc3yUWyzsGld9pzmGw7rviGrXbZNTnSinRSWkFkQkTH1XiPPKHohJ7JqnuRTMIPjPcsqRQ1evxvg29J5hlxDjdyfQ30yTBDNz7kSgHXZVZpJ/35s6o5yVUdO2usSqXTyE/X++WD0IJTSg/izZt8wqpQdJDzJtDeHpDUEgX9lWvieZgVuJxAwwKCiA9HQ32UzJ+/2fQtID2HYiC0L2Ymci4KucBE/g=="
+    },
+    {
+      "name": "business-error",
+      "canonical": "1201:Invalid input.:false:20260924124938.038",
+      "signature": "Rz4M0P+NqaFqOB1Hw6F1MbDYspS0UFR9in5sfhdQiVx4iY5ta4cKKkcMH0MHSXXTfkw46SLSb6nGR+nAqawWr0/YcfzJca/XcAj0JdWyJDaxXT2Bwqc/Or+k0lO0r5FnJBlxkYI6qDfIlwOyE6BYzwUNPDqo+BdrUInnABls7RvEI3/R2kHqE33Nqy3/K59rzPE+83rr6xf8zYe7jTDPbQeTQ3zgi7syjRHPp+wwc3TFq1k/yjV8j7REPld+tx0Ma/dWtb8l6Y3gDa2vA4ku9WT//AaI/A/DVlqii4eg1l36xUhkyFoomYI8BZH0j0a3iqoXMizRDM0o71Mis+0Cyg=="
+    },
+    {
+      "name": "empty-canonical-string",
+      "note": "A body whose only key is `signature`. Signing zero bytes must still work.",
+      "canonical": "",
+      "signature": "AwcPTdO5wE8ALXg5htXDNaWIsSd48RMi4+nDgGdaKrzgdlcS3aPTHot0uqvIL2AvhL/S4+W39eTHPm2ntWxem+jAZ8NL7QOL/q9N4D/Q9ah7/SNrlH94EVOyvtnJjiGJ+3XlSim60+omCJjSHMsqHR8rCZkXbf5kP+mgknShILg9tYqNWSFCuF4vvyKcmnJXGRWfvZwk9ofNdyuqdbw67IiCb0cqVkWvTPcZZUdC0d08EjYLJ4O7Pukv4BJMQXG9T+H6AMn3zUAPkIoolaw+TdUHKrEHvJDkFWRTAccA0RHkgd/xmYX9yvQJVaiwXH88FkazieQHFe53I5lEy/TtPA=="
+    },
+    {
+      "name": "single-separator",
+      "note": "Two empty values and nothing else.",
+      "canonical": ":",
+      "signature": "mw7gx0dcdEtb/9ZqPkDWwav6sO+FwSG/kZIVMSBPbl4h/L8pxzZ+fMl/b6a3Rw3G5UW7MjM2wvGUzUGYXen/z900qQ66DX8htPRUbwYuGi1CXNyViybziJD+nPWD1UovESm4pktAMQlcl09qRlXt8V/LWv2fU3Mq794DcrnbWO/wvpI6Dimwliiz0rNbt7VWZtL7NVYDm7/N4FDNWoRx5kXBoqCxJKHWdD7Rw1kUyQwUi+pFGEGQ17MojkXZ+WixZO9pymcuBcnMmb85dJ5+3ySyLNWRJP4KHKOGJmPIk4QpbkCjiD2LNGKlOtQjToZsC7aDHP4kPGrofA22drqzkw=="
+    },
+    {
+      "name": "non-ascii-utf8",
+      "note": "Signed over UTF-8 bytes, so a UTF-16 or Latin-1 encoding of the same string gives a different signature.",
+      "canonical": "café:naïve:日本語:emoji 🧾:1",
+      "signature": "I3ldv7K9jVwep/L5BDGjs9QM0p3Y0vXt0oRu0ThnrI91lgDrwAl5tXUe3KRvRaIvqYrJzA8dLCRrKZWTigiroJQXy1R3qSYviayYggGHPHJYq9APLn7zh+knbFz/J37yZvICDfDZTUVDGqBD8NMzn6lh4YDR5C/aZVkGJ2uIzTQLEEbB7pYY/9i3dFtu1Qm8SAAn3MBlq7SIjzYGbSnVZSaygaZ1XxErUponMMaoLF8ng8pS8Z8S2T2ZSMXWx7peRwTrdPjfT/le1xfwTNf/4LY5ERkxhXSQjz/YI+rkD0nFYGG91jjYd6xD/jixJxjy86e9wEF6g5rGmSZhVSx9xw=="
+    },
+    {
+      "name": "colon-heavy",
+      "canonical": "https://x.example/a:b:c:d:1",
+      "signature": "J7Bx4bnO3bmAqtjLOY1bdvYjt7ism4Qw+N/wtSmq+2bkWy5eRvJ6N1ehCrww6Q+eSIeUtXVy7hGwOI/qitdy/ILp0ETgCRsOPm2QzcZanl+zdwgcf5GJOksPfV5tp0CN91dXGq5TK0PPLiCHSre2ieY/OqJtbQVsfFRpSY73wNkHKlliLaR9hKCiAMlMR8aEOtR6hCcznhyuAEHxToSLIGsDnKWa/ZSAKj/kw+s12Ea5cQxx5N/lMCeg/k6KzlxOQBtFzjGIUmCrZ3GTGPFSyjDd1X08eNElaIoVzx72lQkf7vRlC6NT/stFMgjmXGwXsH3QHtaPB3XBfOz0LiqmyA=="
+    }
+  ]
+}

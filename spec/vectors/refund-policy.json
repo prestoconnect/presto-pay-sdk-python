@@ -1,0 +1,9 @@
+{
+  "$comment": "Refund request policy. Payment method is not a refund request field and must not be used by an SDK to reject a request. Gateway outcome is determined after submission and may require manual processing.",
+  "cases": [
+    {"paymentMethod": "Wallet", "requestable": true},
+    {"paymentMethod": "AffinBank", "requestable": true},
+    {"paymentMethod": "PmPgCard", "requestable": true},
+    {"paymentMethod": "DuitNowQR", "requestable": true}
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "$comment": "Timestamp vectors for wire-contract.md §3. `format` cases convert epoch milliseconds to a gateway timestamp and back; both directions must hold. `parse` cases are input-only. The offset is a fixed +08:00 — never a named zone, whose rules can change.",
+  "format": [
+    {
+      "name": "presto-worked-example",
+      "epochMillis": 1745376300000,
+      "ts": "20250423104500.000",
+      "utc": "2025-04-23T02:45:00.000Z"
+    },
+    {
+      "name": "staging-init-capture",
+      "epochMillis": 1790228276056,
+      "ts": "20260924133756.056",
+      "utc": "2026-09-24T05:37:56.056Z"
+    },
+    {
+      "name": "staging-business-error-capture",
+      "epochMillis": 1790225378038,
+      "ts": "20260924124938.038",
+      "utc": "2026-09-24T04:49:38.038Z"
+    },
+    {
+      "name": "unix-epoch-is-0800-not-0000",
+      "note": "The anchor case: a host that formats in UTC produces 19700101000000.000 here and fails every request with 1005.",
+      "epochMillis": 0,
+      "ts": "19700101080000.000",
+      "utc": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "year-rollover",
+      "note": "Midnight on 1 January at +08:00 is still 31 December in UTC.",
+      "epochMillis": 1767196800000,
+      "ts": "20260101000000.000",
+      "utc": "2025-12-31T16:00:00.000Z"
+    },
+    {
+      "name": "last-millisecond-of-the-year",
+      "epochMillis": 1767196799999,
+      "ts": "20251231235959.999",
+      "utc": "2025-12-31T15:59:59.999Z"
+    },
+    {
+      "name": "leap-day-end",
+      "epochMillis": 1709222399999,
+      "ts": "20240229235959.999",
+      "utc": "2024-02-29T15:59:59.999Z"
+    },
+    {
+      "name": "leap-day-rollover-to-march",
+      "epochMillis": 1709222400000,
+      "ts": "20240301000000.000",
+      "utc": "2024-02-29T16:00:00.000Z"
+    },
+    {
+      "name": "milliseconds-pad-to-three-digits",
+      "epochMillis": 1790784000007,
+      "ts": "20261001000000.007",
+      "utc": "2026-09-30T16:00:00.007Z"
+    },
+    {
+      "name": "milliseconds-keep-trailing-zero",
+      "note": "70 milliseconds is .070, never .07 and never .7.",
+      "epochMillis": 1790784000070,
+      "ts": "20261001000000.070",
+      "utc": "2026-09-30T16:00:00.070Z"
+    }
+  ],
+  "parse": [
+    { "name": "reject-missing-milliseconds", "ts": "20250423104500", "reject": "wrong length" },
+    { "name": "reject-two-digit-milliseconds", "ts": "20250423104500.00", "reject": "wrong length" },
+    { "name": "reject-four-digit-milliseconds", "ts": "20250423104500.0000", "reject": "wrong length" },
+    { "name": "reject-missing-separator", "ts": "20250423104500000", "reject": "wrong length" },
+    { "name": "reject-non-digit", "ts": "2025042310450O.000", "reject": "non-digit character" },
+    { "name": "reject-month-zero", "ts": "20250023104500.000", "reject": "not a calendar date" },
+    { "name": "reject-month-thirteen", "ts": "20251323104500.000", "reject": "not a calendar date" },
+    { "name": "reject-day-zero", "ts": "20250400104500.000", "reject": "not a calendar date" },
+    { "name": "reject-day-thirty-two", "ts": "20250432104500.000", "reject": "not a calendar date" },
+    {
+      "name": "reject-february-thirty",
+      "note": "A rolling parser silently turns this into 2 March. It must not.",
+      "ts": "20250230104500.000",
+      "reject": "not a calendar date"
+    },
+    { "name": "reject-non-leap-february-29", "ts": "20250229104500.000", "reject": "not a calendar date" },
+    { "name": "reject-hour-24", "ts": "20250423240000.000", "reject": "not a calendar date" },
+    { "name": "reject-minute-60", "ts": "20250423106000.000", "reject": "not a calendar date" },
+    { "name": "reject-second-60", "ts": "20250423104560.000", "reject": "not a calendar date" },
+    { "name": "reject-empty", "ts": "", "reject": "wrong length" },
+    { "name": "reject-leading-space", "ts": " 20250423104500.000", "reject": "wrong length" },
+    { "name": "reject-iso-8601", "ts": "2025-04-23T10:45:00.000+08:00", "reject": "wrong length" }
+  ]
+}

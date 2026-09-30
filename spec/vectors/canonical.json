@@ -1,0 +1,236 @@
+{
+  "$schema": "./canonical.schema.json",
+  "$comment": "Canonical-string vectors for wire-contract.md §4. Each case supplies either `body` (a JSON object) or `bodyRaw` (exact JSON text, for cases an object literal cannot express) and expects `canonical`, or `reject` with a reason. Cases carrying `signature` are real gateway captures: the signature must verify over the canonical string using the key in `verifyWith`. Never regenerate these from an SDK.",
+  "cases": [
+    {
+      "name": "presto-worked-example",
+      "source": "presto-documentation",
+      "body": {
+        "mid": "PW2401XH9KCX",
+        "prestoMrn": "PM240110XDSFC",
+        "txnType": "WebPay",
+        "txnRefNum": "TXN10001",
+        "displayDesc": "Order #12345",
+        "amount": 1200,
+        "currencyCode": "MYR",
+        "notifyUrl": "https://merchant.example.com/webhook/notify",
+        "redirectUrl": "https://merchant.example.com/redirect/TXN10001",
+        "ts": "20250423104500.000"
+      },
+      "canonical": "1200:MYR:Order #12345:PW2401XH9KCX:https://merchant.example.com/webhook/notify:PM240110XDSFC:https://merchant.example.com/redirect/TXN10001:20250423104500.000:TXN10001:WebPay"
+    },
+    {
+      "name": "staging-business-error-1201",
+      "source": "staging-capture",
+      "note": "Proves key sorting, lowercase boolean rendering, the ':' join, RSASSA-PKCS1-v1_5 with SHA-256 and standard Base64, all at once.",
+      "body": {
+        "success": false,
+        "ts": "20260924124938.038",
+        "errorCode": "1201",
+        "errorMessage": "Invalid input.",
+        "signature": "ORzXBr6JLqKR1LmOkbhL/ksH83GEUEgO7kPKzEAOKNhv2DlHnxobx1B705ZMdqQWGc9DMQp/e1HX8ATPJMq5Lpar89fqvAu6va2zNq5t/GcuwMJ3I/wRU++KpYujjWdQsaLhlBfgn/wjR4tq8MbMVqAPNKHlUSQ4iCpgf2eEa55QhIaXbBIH4UX64PHQfZ/2G4fSeGaObn5T06HBSPSUht5itzXe2dLA2/cuycsu+NoDXXKLZFh3+ON5s/UH9dmUlmoXZzYtsmhKhERBkstrrMfqZDaXpkMIDhHE7wPz4LjLeMocnkEh0wMo7SrQd3yKhf1b8Z+U85OdGJMtySkAFg=="
+      },
+      "canonical": "1201:Invalid input.:false:20260924124938.038",
+      "signature": "ORzXBr6JLqKR1LmOkbhL/ksH83GEUEgO7kPKzEAOKNhv2DlHnxobx1B705ZMdqQWGc9DMQp/e1HX8ATPJMq5Lpar89fqvAu6va2zNq5t/GcuwMJ3I/wRU++KpYujjWdQsaLhlBfgn/wjR4tq8MbMVqAPNKHlUSQ4iCpgf2eEa55QhIaXbBIH4UX64PHQfZ/2G4fSeGaObn5T06HBSPSUht5itzXe2dLA2/cuycsu+NoDXXKLZFh3+ON5s/UH9dmUlmoXZzYtsmhKhERBkstrrMfqZDaXpkMIDhHE7wPz4LjLeMocnkEh0wMo7SrQd3yKhf1b8Z+U85OdGJMtySkAFg==",
+      "verifyWith": "keys/presto-staging.der"
+    },
+    {
+      "name": "staging-init-null-additional-data",
+      "source": "staging-capture",
+      "note": "Settles how null is rendered. This signature verifies only when additionalData renders as the empty string; the literal 'null', 'NULL', and omitting the key with its separator all fail.",
+      "body": {
+        "prestoMrn": "PM181019QGJWH4K",
+        "paymentRefNum": "PP260924K4H3DSF",
+        "txnRefNum": "PM202609244E33DA4FCCC7445B99821588791F2418",
+        "paymentStatus": "PendingAuthorise",
+        "paymentUrl": "https://hpp-staging.prestouniverse.com/PM181019QGJWH4K/PP260924K4H3DSF",
+        "userRefNum": "",
+        "amount": 200,
+        "currencyCode": "MYR",
+        "paymentRequestDate": "20260924133756.056",
+        "paymentFinalisedDate": "",
+        "additionalData": null,
+        "success": true,
+        "ts": "20260924133756.056",
+        "errorCode": "",
+        "errorMessage": "",
+        "signature": "YdmEUMfG61ZD781X2q2K5DhJesWgUHd7Z0t5I042PbPf72sqKGHExpl80XHZkbhPv1TiOJ0VjVD3cyY4IDnk722U7tm/gaoJe/uqeCGlAySh/Po03IgDQwQvlU138ghxVjIqs0rNOpB79UXsA3OWDeztoBK5qNJTzzeTYrMT5bVqynWSZVjTECcHnbXMFZ/X07ZhUsnD7DdTKBTCTfusWYr7Csthm1m6OyOzkG0CSkupKxKV79gyfAfyh1Fj4Z7SSaFU8OuC9htbgfftgghY7fSXyyKPwOLuVwhRhhEe3X1VTNk9oC5OD1ALtfu6ry8lQ/RYJJoVJXI00q7KfoCoiw=="
+      },
+      "canonical": ":200:MYR::::PP260924K4H3DSF:20260924133756.056:PendingAuthorise:https://hpp-staging.prestouniverse.com/PM181019QGJWH4K/PP260924K4H3DSF:PM181019QGJWH4K:true:20260924133756.056:PM202609244E33DA4FCCC7445B99821588791F2418:",
+      "signature": "YdmEUMfG61ZD781X2q2K5DhJesWgUHd7Z0t5I042PbPf72sqKGHExpl80XHZkbhPv1TiOJ0VjVD3cyY4IDnk722U7tm/gaoJe/uqeCGlAySh/Po03IgDQwQvlU138ghxVjIqs0rNOpB79UXsA3OWDeztoBK5qNJTzzeTYrMT5bVqynWSZVjTECcHnbXMFZ/X07ZhUsnD7DdTKBTCTfusWYr7Csthm1m6OyOzkG0CSkupKxKV79gyfAfyh1Fj4Z7SSaFU8OuC9htbgfftgghY7fSXyyKPwOLuVwhRhhEe3X1VTNk9oC5OD1ALtfu6ry8lQ/RYJJoVJXI00q7KfoCoiw==",
+      "verifyWith": "keys/presto-staging.der"
+    },
+
+    {
+      "name": "staging-query-stringified-arrays-and-nine-nulls",
+      "source": "staging-capture",
+      "note": "Confirms that a stringified list field canonicalizes as its literal text ('[]', brackets included), and re-proves the null rule against nine nulls at once rather than one. Also shows the same field arriving null here and empty-string on init (userRefNum), which is why mapping normalizes both.",
+      "body": {
+        "prestoMrn": "PM181019QGJWH4K",
+        "paymentRefNum": "PP260924K4H3DSF",
+        "txnRefNum": "PM202609244E33DA4FCCC7445B99821588791F2418",
+        "userRefNum": null,
+        "paymentStatus": "Expired",
+        "amount": 200,
+        "currencyCode": "MYR",
+        "paymentRequestDate": "20260924133756.056",
+        "paymentFinalisedDate": "",
+        "reversalRefNum": null,
+        "prestoReversalRefNum": null,
+        "reversalStatus": null,
+        "reversalDate": "",
+        "refundRefNum": null,
+        "prestoRefundRefNum": null,
+        "refundStatus": null,
+        "refundRequestDate": "",
+        "refundFinalisedDate": "",
+        "additionalData": null,
+        "refundDetails": "[]",
+        "paymentDetails": "[]",
+        "success": true,
+        "ts": "20260924141248.048",
+        "errorCode": "",
+        "errorMessage": "",
+        "signature": "Ny8J5sACRMVrRrqLLVuo3/0r0/6NLn8lsKZG4szSbt5UY5eIZQr/WW6scRYzfDCs+oybn2Hm3pifDdFvVt4g8hBB3f/jSmaxtH2ggxslmoObjZM7Afe9PLj5wwh/MYHRFtkltZwXs/Lp3mBDZEBP0frgzCziZt/NtbJq7VQB5TSrecjTMfFndRTjyblz/ZRwE3z01WR8k95DYILkdDyjnv4ErHnLWAHLB1J2VObt8gkkFw6VldoHNY0QK7UoCOFFYY03mc5+D+zV9P1io674znl1HBPgV8k/Ba8izFer3NqekumcWKcbDwsXH8QBcHfmltYIDZCxTS9sx2pEg5YOug=="
+      },
+      "canonical": ":200:MYR:::[]::PP260924K4H3DSF:20260924133756.056:Expired:PM181019QGJWH4K:::[]::::::::true:20260924141248.048:PM202609244E33DA4FCCC7445B99821588791F2418:",
+      "signature": "Ny8J5sACRMVrRrqLLVuo3/0r0/6NLn8lsKZG4szSbt5UY5eIZQr/WW6scRYzfDCs+oybn2Hm3pifDdFvVt4g8hBB3f/jSmaxtH2ggxslmoObjZM7Afe9PLj5wwh/MYHRFtkltZwXs/Lp3mBDZEBP0frgzCziZt/NtbJq7VQB5TSrecjTMfFndRTjyblz/ZRwE3z01WR8k95DYILkdDyjnv4ErHnLWAHLB1J2VObt8gkkFw6VldoHNY0QK7UoCOFFYY03mc5+D+zV9P1io674znl1HBPgV8k/Ba8izFer3NqekumcWKcbDwsXH8QBcHfmltYIDZCxTS9sx2pEg5YOug==",
+      "verifyWith": "keys/presto-staging.der"
+    },
+
+    {
+      "name": "signature-only-body-canonicalizes-to-empty",
+      "source": "hand-written",
+      "bodyRaw": "{\"signature\":\"AAA=\"}",
+      "canonical": ""
+    },
+    {
+      "name": "single-field",
+      "source": "hand-written",
+      "body": { "ts": "20250423104500.000" },
+      "canonical": "20250423104500.000"
+    },
+    {
+      "name": "sorting-is-by-code-point-not-case-insensitive",
+      "source": "hand-written",
+      "note": "Uppercase sorts before lowercase. A case-insensitive or locale-aware sort gives b:a:z and fails.",
+      "body": { "Zebra": "z", "apple": "a", "Banana": "b" },
+      "canonical": "b:z:a"
+    },
+    {
+      "name": "empty-values-keep-their-separators",
+      "source": "hand-written",
+      "body": { "a": "", "b": "x", "c": "" },
+      "canonical": ":x:"
+    },
+    {
+      "name": "null-renders-exactly-like-empty-string",
+      "source": "hand-written",
+      "note": "Same canonical string as null-vs-empty-string-twin below; the two are indistinguishable once signed.",
+      "body": { "a": null, "b": "x" },
+      "canonical": ":x"
+    },
+    {
+      "name": "null-vs-empty-string-twin",
+      "source": "hand-written",
+      "body": { "a": "", "b": "x" },
+      "canonical": ":x"
+    },
+    {
+      "name": "colon-inside-a-value-is-not-escaped",
+      "source": "hand-written",
+      "note": "Ambiguous by design: this canonical string could be read as three fields.",
+      "body": { "url": "https://x.example/a:b", "z": "1" },
+      "canonical": "https://x.example/a:b:1"
+    },
+    {
+      "name": "booleans-render-lowercase",
+      "source": "hand-written",
+      "body": { "flag": false, "other": true },
+      "canonical": "false:true"
+    },
+    {
+      "name": "zero-and-negative-integers",
+      "source": "hand-written",
+      "body": { "amount": -1200, "balance": 0, "currencyCode": "MYR" },
+      "canonical": "-1200:0:MYR"
+    },
+    {
+      "name": "largest-permitted-integer",
+      "source": "hand-written",
+      "bodyRaw": "{\"amount\":9007199254740991}",
+      "canonical": "9007199254740991"
+    },
+    {
+      "name": "unicode-escape-and-raw-utf8-agree",
+      "source": "hand-written",
+      "note": "The canonical string is built from decoded values, so JSON escaping cannot change it.",
+      "bodyRaw": "{\"desc\":\"caf\\u00e9\",\"x\":\"1\"}",
+      "canonical": "café:1"
+    },
+    {
+      "name": "unicode-raw-utf8-twin",
+      "source": "hand-written",
+      "bodyRaw": "{\"desc\":\"café\",\"x\":\"1\"}",
+      "canonical": "café:1"
+    },
+    {
+      "name": "duplicate-keys-resolve-last-wins",
+      "source": "hand-written",
+      "bodyRaw": "{\"a\":\"first\",\"a\":\"second\",\"b\":\"x\"}",
+      "canonical": "second:x"
+    },
+    {
+      "name": "stringified-array-is-just-a-string",
+      "source": "hand-written",
+      "note": "List fields arrive as JSON strings. They canonicalize as text, brackets and all.",
+      "body": { "allowedPaymentMethods": "[\"Wallet\",\"Card\"]", "mid": "PW2401XH9KCX" },
+      "canonical": "[\"Wallet\",\"Card\"]:PW2401XH9KCX"
+    },
+
+    {
+      "name": "reject-non-integer-number",
+      "source": "hand-written",
+      "bodyRaw": "{\"amount\":12.5}",
+      "reject": "non-integer number"
+    },
+    {
+      "name": "reject-integer-above-the-safe-bound",
+      "source": "hand-written",
+      "bodyRaw": "{\"amount\":9007199254740993}",
+      "reject": "integer outside ±(2^53 − 1)"
+    },
+    {
+      "name": "reject-integer-below-the-safe-bound",
+      "source": "hand-written",
+      "bodyRaw": "{\"amount\":-9007199254740993}",
+      "reject": "integer outside ±(2^53 − 1)"
+    },
+    {
+      "name": "reject-nested-object",
+      "source": "hand-written",
+      "bodyRaw": "{\"a\":{\"b\":1}}",
+      "reject": "object value"
+    },
+    {
+      "name": "reject-native-array",
+      "source": "hand-written",
+      "note": "List fields are always JSON strings on the wire, so a native array means the body is not what it claims to be.",
+      "bodyRaw": "{\"itemList\":[1,2]}",
+      "reject": "array value"
+    },
+    {
+      "name": "reject-top-level-array",
+      "source": "hand-written",
+      "bodyRaw": "[1,2]",
+      "reject": "not a JSON object"
+    },
+    {
+      "name": "reject-non-finite-number",
+      "source": "hand-written",
+      "note": "Not valid JSON, but several parsers accept it by default.",
+      "bodyRaw": "{\"amount\":NaN}",
+      "reject": "not valid JSON"
+    }
+  ]
+}
