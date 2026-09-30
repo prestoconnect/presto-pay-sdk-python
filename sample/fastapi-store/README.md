@@ -19,33 +19,47 @@ Use the staging merchant credentials from your Presto onboarding pack. No secret
 | Presto public key | `keys/presto_ext_service_dev.der` |
 
 Any value can also come from an exported `PRESTOPAY_*` / `APP_*` environment variable, which takes precedence
-over `.env`. The client is built with `AsyncPrestoPay.from_env()`. The app's lifespan closes it on shutdown.
+over `.env`. Settings are loaded and the client is built with `AsyncPrestoPay.from_env()` when the app starts.
+The app's lifespan closes the client on shutdown.
 
 ## Run
 
-Requires **Python 3.11+** and [uv](https://docs.astral.sh/uv/). The project installs the SDK from this
-checkout.
+Requires **Python 3.11+** and [uv](https://docs.astral.sh/uv/). `uv sync` installs this project and the SDK from
+this checkout.
 
 ```bash
 cd sample/fastapi-store
 uv sync
 cp .env.example .env    # then fill in your staging credentials; add the key files under keys/
 export APP_PUBLIC_BASE_URL=https://your-tunnel.example   # for webhooks and the redirect back
-uv run uvicorn mystore.app:create_app --factory --port 8080
+uv run uvicorn fastapi_store.main:app --port 8080
 ```
 
 Open [http://localhost:8080](http://localhost:8080). Run the tests with `uv run pytest`.
 
-## Source layout
+## Project layout
 
 ```
-mystore/
-├── app.py            create_app(): FastAPI routes over the async AsyncPrestoPay client
-├── checkout.py       Form validation, ringgit → sen, init arguments, gateway-error bodies, return-page data
-├── config.py         .env / environment settings, startup logging
-├── store.py          In-memory recent checkouts and webhooks (deduplicated on event_ref_num)
-├── views.py          Jinja2 rendering
-├── templates/        index.html, return.html, _webhooks.html
-└── static/js/        checkout.js, mounted at /js/checkout.js
-tests/                The routes against a mock gateway that signs its responses
+fastapi-store/
+├── pyproject.toml
+├── .env.example
+├── keys/                      onboarding key files (gitignored)
+├── src/fastapi_store/
+│   ├── main.py                app: routers, static files, and the lifespan that builds the client
+│   ├── config.py              Settings from .env and the environment, startup logging
+│   ├── dependencies.py        Depends() providers for the settings, AsyncPrestoPay client and store
+│   ├── schemas.py             CheckoutRequest (Pydantic), and the 400 {field: message} error handler
+│   ├── services.py            the Presto calls: start a checkout, query a payment, accept a webhook
+│   ├── store.py               in-memory recent checkouts and webhooks
+│   ├── rendering.py           Jinja2Templates
+│   ├── routers/
+│   │   ├── checkout.py        GET /, POST /checkout
+│   │   ├── payments.py        GET /return/{txn_ref_num}
+│   │   └── webhooks.py        POST /presto/notify
+│   ├── templates/             index.html, return.html, partials/
+│   └── static/js/checkout.js  the Java sample's script, unchanged
+└── tests/                     routes and the request schema, against a mock gateway that signs its responses
 ```
+
+FastAPI rejects invalid input with a 422 and a list of errors by default. `schemas.validation_failed` turns that
+into a 400 with a `{field: message}` map instead, because the checkout page's script expects that shape.

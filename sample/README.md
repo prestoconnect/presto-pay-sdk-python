@@ -9,12 +9,17 @@ your stack:
 
 | Folder | Framework | SDK client | Run (from the folder) |
 |--------|-----------|------------|-----------------------|
-| [`flask-store/`](flask-store/) | Flask | `PrestoPay` (sync) | `uv run flask --app mystore.app run --port 8080` |
-| [`fastapi-store/`](fastapi-store/) | FastAPI | `AsyncPrestoPay` (async) | `uv run uvicorn mystore.app:create_app --factory --port 8080` |
+| [`flask-store/`](flask-store/) | Flask | `PrestoPay` (sync) | `uv run flask --app flask_store run --port 8080` |
+| [`fastapi-store/`](fastapi-store/) | FastAPI | `AsyncPrestoPay` (async) | `uv run uvicorn fastapi_store.main:app --port 8080` |
 
-The two folders are identical except for `mystore/app.py`, the dependencies in `pyproject.toml`, and the test
-client in `tests/conftest.py`. They share the same templates, the same form validation and the same
-`checkout.js` (the Java sample's script, unchanged). Each folder's README covers credentials and how to run it.
+Each project is an installable package under `src/`, organised the way its framework expects:
+
+- **Flask:** an application factory, Blueprints and `render_template`.
+- **FastAPI:** a Pydantic request model, `APIRouter`s, `Depends()` and `Jinja2Templates`.
+
+Both keep the Presto calls in `services.py`, apart from the routes. The two versions differ only in `async` and
+`await`. The page itself is the same in both: the same templates and the Java sample's `checkout.js`,
+unchanged. Each folder's README covers credentials, how to run it and its project layout.
 
 ### Checkout UI
 

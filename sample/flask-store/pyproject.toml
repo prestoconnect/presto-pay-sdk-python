@@ -1,28 +1,39 @@
 [project]
-name = "presto-pay-mystore-flask"
-version = "0"
+name = "flask-store"
+version = "0.1.0"
 description = "MyStore checkout sample for the Presto Pay Python SDK, on Flask"
 requires-python = ">=3.11"
 dependencies = [
     "presto-pay-sdk",
     "flask>=3.0",
-    "jinja2>=3.1",
     "python-dotenv>=1.0",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8"]
 
-[tool.uv]
-package = false
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flask_store"]
 
 [tool.uv.sources]
 presto-pay-sdk = { path = "../..", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
 addopts = ["--strict-markers"]
-filterwarnings = [
-    "error",
-]
+filterwarnings = ["error"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+src = ["src", "."]
+
+[tool.ruff.lint.isort]
+known-first-party = ["flask_store", "tests"]
+known-third-party = ["presto_pay"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]

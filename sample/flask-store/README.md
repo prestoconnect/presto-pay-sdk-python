@@ -23,29 +23,38 @@ over `.env`. The client is built with `PrestoPay.from_env()`.
 
 ## Run
 
-Requires **Python 3.11+** and [uv](https://docs.astral.sh/uv/). The project installs the SDK from this
-checkout.
+Requires **Python 3.11+** and [uv](https://docs.astral.sh/uv/). `uv sync` installs this project and the SDK from
+this checkout.
 
 ```bash
 cd sample/flask-store
 uv sync
 cp .env.example .env    # then fill in your staging credentials; add the key files under keys/
 export APP_PUBLIC_BASE_URL=https://your-tunnel.example   # for webhooks and the redirect back
-uv run flask --app mystore.app run --port 8080
+uv run flask --app flask_store run --port 8080
 ```
 
 Open [http://localhost:8080](http://localhost:8080). Run the tests with `uv run pytest`.
 
-## Source layout
+## Project layout
 
 ```
-mystore/
-├── app.py            create_app(): Flask routes over the sync PrestoPay client
-├── checkout.py       Form validation, ringgit → sen, init arguments, gateway-error bodies, return-page data
-├── config.py         .env / environment settings, startup logging
-├── store.py          In-memory recent checkouts and webhooks (deduplicated on event_ref_num)
-├── views.py          Jinja2 rendering
-├── templates/        index.html, return.html, _webhooks.html
-└── static/js/        checkout.js, served at /js/checkout.js
-tests/                The routes against a mock gateway that signs its responses
+flask-store/
+├── pyproject.toml
+├── .env.example
+├── keys/                      onboarding key files (gitignored)
+├── src/flask_store/
+│   ├── __init__.py            create_app(): the application factory
+│   ├── config.py              Settings from .env and the environment, startup logging
+│   ├── extensions.py          the PrestoPay client, settings and store, attached to the app
+│   ├── forms.py               CheckoutForm: validates the JSON body of POST /checkout
+│   ├── services.py            the Presto calls: start a checkout, query a payment, accept a webhook
+│   ├── store.py               in-memory recent checkouts and webhooks
+│   ├── routes/
+│   │   ├── checkout.py        GET /, POST /checkout
+│   │   ├── payments.py        GET /return/<txn_ref_num>
+│   │   └── webhooks.py        POST /presto/notify
+│   ├── templates/             index.html, return.html, partials/
+│   └── static/js/checkout.js  the Java sample's script, unchanged
+└── tests/                     routes against a mock gateway that signs its responses
 ```

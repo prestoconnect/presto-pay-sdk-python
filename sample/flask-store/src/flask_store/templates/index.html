@@ -106,12 +106,12 @@
     </div>
   </section>
 
-  {% with heading = "Recent webhooks (shared)" %}{% include "_webhooks.html" %}{% endwith %}
+  {% with heading = "Recent webhooks (shared)" %}{% include "partials/recent_webhooks.html" %}{% endwith %}
 </div>
 
 <script>
   window.CHECKOUT_DEFAULT_SELECTED_METHOD = {{ checkout.selected_payment_method | tojson }};
 </script>
-<script src="/js/checkout.js"></script>
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
 </body>
 </html>

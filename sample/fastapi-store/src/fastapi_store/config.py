@@ -8,11 +8,11 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-SAMPLE_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_PRIVATE_KEY_FILE = SAMPLE_DIR / "keys" / "presto_rm_keystore.p12"
-DEFAULT_PUBLIC_KEY_FILE = SAMPLE_DIR / "keys" / "presto_ext_service_dev.der"
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_PRIVATE_KEY_FILE = PROJECT_DIR / "keys" / "presto_rm_keystore.p12"
+DEFAULT_PUBLIC_KEY_FILE = PROJECT_DIR / "keys" / "presto_ext_service_dev.der"
 
-log = logging.getLogger("mystore")
+log = logging.getLogger("fastapi_store")
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +42,7 @@ class Settings:
         return f"{self.redirect_url}/{txn_ref_num}"
 
 
-def load_settings(environ: Mapping[str, str] | None = None, env_file: Path | None = SAMPLE_DIR / ".env") -> Settings:
+def load_settings(environ: Mapping[str, str] | None = None, env_file: Path | None = PROJECT_DIR / ".env") -> Settings:
     values: dict[str, str] = {}
     if env_file is not None and env_file.exists():
         values.update({key: value for key, value in dotenv_values(env_file).items() if value is not None})
