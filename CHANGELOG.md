@@ -15,7 +15,7 @@
   socket suite proves that classification.
 - Webhook verification with multi-`mid` and multi-key support and a 15-minute freshness window.
   `NotifyAck.for_error` answers permanent failures with `resend:false`.
-- `sample/flask-store/` and `sample/fastapi-store/`: the MyStore checkout from the Java SDK's sample, on Flask
-  with `PrestoPay` and on FastAPI with `AsyncPrestoPay`.
+- `sample/flask-store/` and `sample/fastapi-store/`: a MyStore checkout sample, on Flask with `PrestoPay` and on
+  FastAPI with `AsyncPrestoPay`.
 - `from_env`, `strict` mode, redaction of card and receipt details from error bodies, and the `raw.post`
   escape hatch.

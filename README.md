@@ -238,10 +238,9 @@ UTC+08:00. Result date fields are left as strings.
 
 ## Samples
 
-[`sample/`](sample/) is a runnable **MyStore** checkout against Presto staging, ported from the Java SDK's
-sample with the same UI and behaviour. It includes the hosted and self-hosted payment-method flows, a return
-page that queries the payment's status, and a webhook handler with a "recent webhooks" list. It comes as two
-self-contained projects:
+[`sample/`](sample/) is a runnable **MyStore** checkout against Presto staging. It includes the hosted and
+self-hosted payment-method flows, a return page that queries the payment's status, and a webhook handler with a
+"recent webhooks" list. It comes as two self-contained projects:
 
 - [`sample/flask-store/`](sample/flask-store/): Flask on the sync `PrestoPay` client.
 - [`sample/fastapi-store/`](sample/fastapi-store/): FastAPI on the async `AsyncPrestoPay` client.

@@ -55,6 +55,6 @@ flask-store/
 │   │   ├── payments.py        GET /return/<txn_ref_num>
 │   │   └── webhooks.py        POST /presto/notify
 │   ├── templates/             index.html, return.html, partials/
-│   └── static/js/checkout.js  the Java sample's script, unchanged
+│   └── static/js/checkout.js  the checkout page's script
 └── tests/                     routes against a mock gateway that signs its responses
 ```

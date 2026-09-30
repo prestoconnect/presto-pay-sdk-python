@@ -2,10 +2,9 @@
 
 ## MyStore
 
-**MyStore** is a checkout page that runs against **Presto staging**, ported from the Java SDK's sample with
-the same UI and behaviour. It is styled with Tailwind CSS (Play CDN) and Font Awesome icons, and jQuery drives
-the page's JSON checkout calls. It is built twice, as two self-contained projects. Copy whichever one matches
-your stack:
+**MyStore** is a checkout page that runs against **Presto staging**. It is styled with Tailwind CSS (Play CDN)
+and Font Awesome icons, and jQuery drives the page's JSON checkout calls. It is built twice, as two
+self-contained projects. Copy whichever one matches your stack:
 
 | Folder | Framework | SDK client | Run (from the folder) |
 |--------|-----------|------------|-----------------------|
@@ -18,8 +17,8 @@ Each project is an installable package under `src/`, organised the way its frame
 - **FastAPI:** a Pydantic request model, `APIRouter`s, `Depends()` and `Jinja2Templates`.
 
 Both keep the Presto calls in `services.py`, apart from the routes. The two versions differ only in `async` and
-`await`. The page itself is the same in both: the same templates and the Java sample's `checkout.js`,
-unchanged. Each folder's README covers credentials, how to run it and its project layout.
+`await`. The page itself is the same in both: the same templates and the same `checkout.js`. Each folder's
+README covers credentials, how to run it and its project layout.
 
 ### Checkout UI
 
@@ -56,11 +55,9 @@ Use a tunnel (for example `ngrok http 8080`) or a deployed host, and set `APP_PU
 Each `init` sets `redirect_url` to `{base}/return/{txnRefNum}`. The `/return/{txnRefNum}` handler **requires**
 that path segment. A bare `/return` shows an explanatory page instead.
 
-`/presto/notify` behaves differently from the Java sample in two ways. Both follow the Python SDK's webhook
-guidance:
+`/presto/notify` follows the SDK's webhook guidance:
 
 - **Deduplication.** It deduplicates on `event_ref_num`. Presto redelivers an event up to four more times, and
   each redelivery is still acknowledged but listed only once.
 - **Rejected webhooks.** It answers a webhook it rejects (bad signature, foreign `mid`, stale `ts`) with HTTP
-  200 and `NotifyAck.for_error(exc)` (`{"resend":false}`) rather than 401 or 400. A permanent failure never
-  asks Presto to resend.
+  200 and `NotifyAck.for_error(exc)` (`{"resend":false}`). A permanent failure never asks Presto to resend.
