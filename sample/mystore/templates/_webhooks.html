@@ -1,0 +1,29 @@
+{% if recent_webhooks %}
+<section class="mt-6">
+  <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ heading }}</h3>
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <table class="w-full text-xs">
+      <thead>
+      <tr class="bg-slate-50 text-slate-500">
+        <th class="px-3 py-2 text-left font-medium">Time</th>
+        <th class="px-3 py-2 text-left font-medium">Event</th>
+        <th class="px-3 py-2 text-left font-medium">Status</th>
+        <th class="px-3 py-2 text-left font-medium">Txn ref</th>
+        <th class="px-3 py-2 text-left font-medium">success</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for w in recent_webhooks %}
+      <tr class="border-t border-slate-200">
+        <td class="px-3 py-2">{{ w.received_at.strftime('%H:%M:%S') }}</td>
+        <td class="px-3 py-2">{{ w.event_code }}</td>
+        <td class="px-3 py-2">{{ w.payment_status }}</td>
+        <td class="px-3 py-2">{{ w.txn_ref_num }}</td>
+        <td class="px-3 py-2{% if w.event_code == 'Authorised' %} font-semibold text-green-600{% endif %}">{{ w.success | lower }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}

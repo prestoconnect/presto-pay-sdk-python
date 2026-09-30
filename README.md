@@ -24,6 +24,7 @@ you when a payment might have gone through anyway.
 - [Errors](#errors)
 - [Custom HTTP client](#custom-http-client)
 - [Debugging signatures](#debugging-signatures)
+- [Samples](#samples)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -234,6 +235,14 @@ parsed dict. `presto.raw.sign(canonical)` and `presto.raw.verify_body(body)` exp
 
 `parse_gateway_timestamp` reads the gateway's `yyyyMMddHHmmss.SSS` date fields into aware `datetime`s at
 UTC+08:00. Result date fields are left as strings.
+
+## Samples
+
+[`sample/`](sample/) is a runnable **MyStore** checkout against Presto staging, ported from the Java SDK's
+sample with the same UI and behaviour. It includes the hosted and self-hosted payment-method flows, a return
+page that queries the payment's status, and a webhook handler with a "recent webhooks" list. It comes as a
+Flask app on `PrestoPay` and a FastAPI app on `AsyncPrestoPay`, and both share the same templates, validation
+and `checkout.js`. See [sample/README.md](sample/README.md).
 
 ## Contributing
 
