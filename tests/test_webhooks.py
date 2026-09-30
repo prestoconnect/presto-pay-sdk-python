@@ -74,6 +74,9 @@ class TestAccepted:
             ("Authorised", False, PaymentStatus.FAILED),
             ("Cancelled", True, PaymentStatus.CANCELLED),
             ("Refunded", True, PaymentStatus.REFUNDED),
+            ("Refunded", False, PaymentStatus.REFUNDED),
+            ("Reversed", False, PaymentStatus.REVERSED),
+            ("Expired", False, PaymentStatus.EXPIRED),
             ("SomethingNew", True, "SomethingNew"),
         ],
     )
