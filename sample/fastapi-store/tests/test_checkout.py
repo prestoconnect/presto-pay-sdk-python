@@ -21,7 +21,7 @@ def test_checkout_page_renders_the_single_form(client: TestClient) -> None:
     assert "Recent webhooks" not in html
 
 
-def test_checkout_javascript_is_served_with_the_payment_method_data(client: TestClient) -> None:
+def test_checkout_script_is_served_with_the_payment_method_data(client: TestClient) -> None:
     response = client.get("/static/js/checkout.js")
     assert response.status_code == 200
     assert "TouchNGoEWallet" in response.text

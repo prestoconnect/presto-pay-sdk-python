@@ -23,8 +23,8 @@ README covers credentials, how to run it and its project layout.
 ### Checkout UI
 
 There is one page ([`/`](http://localhost:8080/)). It has a **"Show payment methods on checkout"** toggle that
-switches between the two ways to call `init`. Either way, the page's JavaScript sends the order as JSON to
-`POST /checkout`; it is not a browser form post.
+switches between the two ways to call `init`. Either way, the page sends the order as JSON to `POST /checkout`;
+it is not a browser form post.
 
 | Toggle | Experience | SDK |
 |--------|------------|-----|

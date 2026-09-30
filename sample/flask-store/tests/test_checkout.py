@@ -21,7 +21,7 @@ def test_checkout_page_renders_the_single_form(client: FlaskClient) -> None:
     assert "Recent webhooks" not in html
 
 
-def test_checkout_javascript_is_served_with_the_payment_method_data(client: FlaskClient) -> None:
+def test_checkout_script_is_served_with_the_payment_method_data(client: FlaskClient) -> None:
     with client.get("/static/js/checkout.js") as response:
         assert response.status_code == 200
         assert "TouchNGoEWallet" in response.get_data(as_text=True)
