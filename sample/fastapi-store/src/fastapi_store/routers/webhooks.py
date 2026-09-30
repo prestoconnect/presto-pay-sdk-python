@@ -11,5 +11,5 @@ router = APIRouter()
 
 @router.post("/presto/notify")
 async def presto_notify(request: Request, presto: PrestoDep, activity: ActivityDep) -> Response:
-    ack = services.accept_webhook(presto, activity, await request.body())
+    ack = await services.accept_webhook(presto, activity, await request.body())
     return Response(ack, media_type=NotifyAck.CONTENT_TYPE)

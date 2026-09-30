@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 
 from presto_pay._core.canonical import JsonScalar
 from presto_pay._core.mapping import FieldReader
-from presto_pay.constants import EventCode, PaymentStatus
 from presto_pay.payments.results import PaymentDetail, read_payment_details
 
 
@@ -25,25 +24,12 @@ class WebhookEvent:
     user_ref_num: str | None
     additional_data: str | None
     payment_details: tuple[PaymentDetail, ...]
-    payment_status: str | None
     raw: Mapping[str, JsonScalar] = field(repr=False, compare=False)
 
 
-def derived_payment_status(event_code: str, success: bool) -> str | None:
-    if event_code == EventCode.AUTHORISED:
-        return PaymentStatus.AUTHORISED.value if success else PaymentStatus.FAILED.value
-    # A failed refund or reversal leaves the payment in whatever state it was already in, which this event does
-    # not carry, so there is no status to report.
-    if not success and event_code in (EventCode.REFUNDED, EventCode.REVERSED):
-        return None
-    return event_code
-
-
 def map_event(reader: FieldReader) -> WebhookEvent:
-    event_code = reader.required_str("eventCode")
-    success = reader.required_bool("success")
     return WebhookEvent(
-        event_code=event_code,
+        event_code=reader.required_str("eventCode"),
         mid=reader.required_str("mid"),
         presto_mrn=reader.required_str("prestoMrn"),
         payment_ref_num=reader.required_str("paymentRefNum"),
@@ -53,10 +39,9 @@ def map_event(reader: FieldReader) -> WebhookEvent:
         amount=reader.required_int("amount"),
         currency_code=reader.required_str("currencyCode"),
         ts=reader.required_str("ts"),
-        success=success,
+        success=reader.required_bool("success"),
         user_ref_num=reader.optional_str("userRefNum"),
         additional_data=reader.optional_str("additionalData"),
         payment_details=read_payment_details(reader),
-        payment_status=derived_payment_status(event_code, success),
         raw=dict(reader.body),
     )

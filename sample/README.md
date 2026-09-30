@@ -57,6 +57,9 @@ that path segment. A bare `/return` shows an explanatory page instead.
 
 `/presto/notify` follows the SDK's webhook guidance:
 
+- **Status from `query`.** After verifying an event, it queries the payment by `payment_ref_num`, and the
+  "Recent webhooks" list shows the status that `query` returned. If the query fails, it answers
+  `{"resend":true}` without recording the event, so Presto's redelivery tries again.
 - **Deduplication.** It deduplicates on `event_ref_num`. Presto redelivers an event up to four more times, and
   each redelivery is still acknowledged but listed only once.
 - **Rejected webhooks.** It answers a webhook it rejects (bad signature, foreign `mid`, stale `ts`) with HTTP

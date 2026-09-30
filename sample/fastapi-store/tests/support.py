@@ -70,6 +70,7 @@ class Gateway:
         self.query_status = "Authorised"
         self.query_details = "[]"
         self.init_error: dict[str, Any] | None = None
+        self.query_http_status = 200
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         sent = json.loads(request.content)
@@ -93,9 +94,11 @@ class Gateway:
                 "currencyCode": sent["currencyCode"],
             }
         else:
+            if self.query_http_status != 200:
+                return httpx.Response(self.query_http_status)
             body = common | {
-                "paymentRefNum": "PP260924K4H3DSF",
-                "txnRefNum": sent["txnRefNum"],
+                "paymentRefNum": sent.get("paymentRefNum", "PP260924K4H3DSF"),
+                "txnRefNum": sent.get("txnRefNum", "demo-0123456789abcdef"),
                 "paymentStatus": self.query_status,
                 "amount": 123456,
                 "currencyCode": "MYR",

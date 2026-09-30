@@ -21,7 +21,6 @@ from conftest import (
 )
 from presto_pay import (
     NotifyAck,
-    PaymentStatus,
     PrestoPayConfigError,
     PrestoPayResponseError,
     PrestoPaySignatureError,
@@ -67,24 +66,12 @@ class TestAccepted:
         assert event.additional_data is None
         assert event.payment_details == ()
 
-    @pytest.mark.parametrize(
-        ("event_code", "success", "status"),
-        [
-            ("Authorised", True, PaymentStatus.AUTHORISED),
-            ("Authorised", False, PaymentStatus.FAILED),
-            ("Cancelled", True, PaymentStatus.CANCELLED),
-            ("Refunded", True, PaymentStatus.REFUNDED),
-            ("Refunded", False, None),
-            ("Reversed", True, PaymentStatus.REVERSED),
-            ("Reversed", False, None),
-            ("Cancelled", False, PaymentStatus.CANCELLED),
-            ("Expired", False, PaymentStatus.EXPIRED),
-            ("SomethingNew", True, "SomethingNew"),
-        ],
-    )
-    def test_derived_payment_status(self, event_code: str, success: bool, status: str | None) -> None:
+    @pytest.mark.parametrize("event_code", ["Authorised", "Refunded", "Reversed", "Cancelled", "SomethingNew"])
+    @pytest.mark.parametrize("success", [True, False])
+    def test_event_reports_what_presto_sent_and_derives_no_status(self, event_code: str, success: bool) -> None:
         event = verifier().verify(signed_json(webhook(eventCode=event_code, success=success)))
-        assert event.payment_status == status
+        assert (event.event_code, event.success) == (event_code, success)
+        assert not hasattr(event, "payment_status")
 
     def test_payment_details(self) -> None:
         details = json.dumps([{"amount": 10000, "method": "Wallet"}])

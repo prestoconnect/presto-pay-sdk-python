@@ -59,16 +59,27 @@ redelivery can try again.
   covers SDK errors from calls your fulfilment code makes: a `query` that fails inside the handler has
   `source="response"`, so the event is redelivered rather than lost.
 
-The event's `payment_status` is derived from its event code and `success`:
+## Getting the payment status
 
-| Event | `success: true` | `success: false` |
-|-------|-----------------|------------------|
-| `Authorised` | `Authorised` | `Failed` |
-| `Refunded`, `Reversed` | the event code | `None`: the refund or reversal failed, so the payment keeps its previous status |
-| any other | the event code | the event code |
+A webhook tells you that something happened to a payment. It doesn't tell you the payment's status. The event
+carries `event_code` (`Authorised`, `Refunded`, `Reversed`, `Cancelled`, `Expired` or a newer code) and
+`success`, exactly as Presto sent them. The SDK doesn't derive a status from those two fields.
 
-When `payment_status` is `None`, leave the status you have stored for the payment unchanged. `query` remains the
-authoritative source of payment state.
+To get the status, call `query` in the handler:
+
+```python
+event = presto.webhooks.verify(body)
+payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
+payment.payment_status  # e.g. "Authorised", "PartialRefunded", "Refunded"
+```
+
+`query` always returns the payment's latest status, whatever order webhooks and the payer's redirect arrive in.
+It also covers cases that the event code alone can't settle, such as a failed refund leaving the payment in its
+previous state.
+
+If the `query` fails, `NotifyAck.for_error` answers `{"resend":true}`, and Presto redelivers the event so you can
+try again. Record `event_ref_num` only after you have processed the event, so a redelivery isn't mistaken for a
+duplicate.
 
 ## Django
 

@@ -16,8 +16,8 @@
   proves that classification.
 - Webhook verification with multi-`mid` and multi-key support and a 15-minute freshness window.
   `NotifyAck.for_error` answers `resend:false` only when verifying the webhook itself failed. Errors from calls
-  made inside the handler get `resend:true`, so the event is redelivered. `WebhookEvent.payment_status` is `None`
-  for a failed `Refunded` or `Reversed` event, because the payment keeps its previous status.
+  made inside the handler get `resend:true`, so the event is redelivered. `WebhookEvent` carries `event_code` and
+  `success` as sent and derives no payment status; handlers call `query` for the latest status.
 - `sample/flask-store/` and `sample/fastapi-store/`: a MyStore checkout sample, on Flask with `PrestoPay` and on
   FastAPI with `AsyncPrestoPay`.
 - `from_env`, `strict` mode, and the `raw.post` escape hatch.

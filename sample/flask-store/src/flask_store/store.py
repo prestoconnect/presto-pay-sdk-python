@@ -61,6 +61,10 @@ class ActivityStore:
             self._webhooks.appendleft(record)
             return True
 
+    def has_webhook(self, event_ref_num: str) -> bool:
+        with self._lock:
+            return event_ref_num in self._seen_events
+
     def recent_webhooks(self) -> list[WebhookRecord]:
         with self._lock:
             return list(self._webhooks)

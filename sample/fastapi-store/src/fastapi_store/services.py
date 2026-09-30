@@ -61,38 +61,37 @@ async def find_payment(presto: AsyncPrestoPay, settings: Settings, txn_ref_num: 
     return query
 
 
-def accept_webhook(presto: AsyncPrestoPay, store: ActivityStore, body: bytes) -> bytes:
+async def accept_webhook(presto: AsyncPrestoPay, store: ActivityStore, body: bytes) -> bytes:
     try:
         event = presto.webhooks.verify(body)
+        if store.has_webhook(event.event_ref_num):
+            log.info("Webhook eventRefNum=%s already processed; acknowledging again", event.event_ref_num)
+            return NotifyAck.OK
+        payment = await presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
     except Exception as exc:
-        log.warning("Webhook rejected: %s", exc)
+        log.warning("Webhook not processed: %s", exc)
         return NotifyAck.for_error(exc)
     log.info(
-        "Webhook verified eventCode=%s paymentStatus=%s txnRefNum=%s paymentRefNum=%s success=%s amount=%s %s "
-        "eventRefNum=%s",
+        "Webhook eventCode=%s success=%s txnRefNum=%s paymentRefNum=%s eventRefNum=%s; queried paymentStatus=%s",
         event.event_code,
-        event.payment_status,
+        event.success,
         event.txn_ref_num,
         event.payment_ref_num,
-        event.success,
-        event.amount,
-        event.currency_code,
         event.event_ref_num,
+        payment.payment_status,
     )
-    recorded = store.record_webhook(
+    store.record_webhook(
         WebhookRecord(
             event_ref_num=event.event_ref_num,
             txn_ref_num=event.txn_ref_num,
             event_code=event.event_code,
-            payment_status=event.payment_status,
+            payment_status=payment.payment_status,
             success=event.success,
             amount_minor_units=event.amount,
             currency_code=event.currency_code,
             received_at=datetime.now().astimezone(),
         )
     )
-    if not recorded:
-        log.info("Webhook eventRefNum=%s already processed; acknowledging again", event.event_ref_num)
     return NotifyAck.OK
 
 
