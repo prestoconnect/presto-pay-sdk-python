@@ -11,7 +11,7 @@ import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-from presto_pay import AsyncPrestoPay, Environment, PrestoPay, RetryReads
+from presto_pay import AsyncPrestoPay, Environment, PrestoPay, RetryReads, load_presto_public_key, load_private_key
 
 SPEC = Path(__file__).resolve().parent.parent / "spec"
 KEYS = SPEC / "keys"
@@ -139,12 +139,16 @@ class Gateway:
         return [json.loads(request.content) for request in self.requests]
 
 
+_MERCHANT_KEY = load_private_key(TEST_PRIVATE_KEY)
+_PRESTO_KEY = load_presto_public_key(TEST_CERT_PEM)
+
+
 def client_options(**overrides: Any) -> dict[str, Any]:
     options: dict[str, Any] = {
         "environment": Environment(BASE_URL),
         "merchant_id": MID,
-        "private_key": TEST_PRIVATE_KEY,
-        "presto_public_key": TEST_CERT_PEM,
+        "private_key": _MERCHANT_KEY,
+        "presto_public_key": _PRESTO_KEY,
         "clock": lambda: NOW,
         "retry_reads": RetryReads(initial_backoff=0.0, max_backoff=0.0),
     }

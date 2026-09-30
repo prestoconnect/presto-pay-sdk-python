@@ -7,8 +7,9 @@ import re
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from types import TracebackType
-from typing import ClassVar, Concatenate, Generic, Literal, ParamSpec, Self, TypeVar
+from typing import ClassVar, Concatenate, Generic, Literal, ParamSpec, Self, TypedDict, TypeVar, Unpack
 from urllib.parse import urlsplit
 
 import httpx
@@ -40,6 +41,7 @@ from presto_pay.errors import PrestoPayConfigError, PrestoPayResponseError, Pres
 from presto_pay.payments import to_wire
 from presto_pay.payments.inputs import check_documented_lengths
 from presto_pay.payments.to_wire import Call
+from presto_pay.webhooks.verifier import WebhookOptions, WebhookVerifier
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -99,6 +101,70 @@ def _resolve_environment(environment: EnvironmentInput) -> Environment:
     )
 
 
+class ClientOptions(TypedDict, total=False):
+    deadline: float
+    retry_reads: RetryReads
+    webhooks: WebhookOptions
+    strict: bool
+    redact_error_bodies: bool
+    clock: Callable[[], float]
+
+
+@dataclass(frozen=True, slots=True)
+class _EnvSettings:
+    environment: EnvironmentInput
+    merchant_id: str
+    private_key: str | Path
+    private_key_password: str | None
+    presto_public_key: str | Path
+
+
+def _settings_from_env(env: Mapping[str, str]) -> _EnvSettings:
+    def value(name: str) -> str | None:
+        found = env.get(name)
+        return found if found else None
+
+    def text_or_file(name: str) -> str | Path:
+        text, path = value(name), value(f"{name}_FILE")
+        if text and path:
+            raise PrestoPayConfigError(f"set {name} or {name}_FILE, not both", field=name)
+        if path:
+            return Path(path)
+        if text:
+            return _unescape_newlines(text)
+        raise PrestoPayConfigError(f"{name} or {name}_FILE is not set", field=name)
+
+    base_url, name = value("PRESTOPAY_BASE_URL"), value("PRESTOPAY_ENV")
+    if base_url and name:
+        raise PrestoPayConfigError("set PRESTOPAY_ENV or PRESTOPAY_BASE_URL, not both", field="PRESTOPAY_ENV")
+    environment: EnvironmentInput
+    if base_url:
+        environment = Environment(base_url)
+    elif name in ("staging", "production"):
+        environment = "staging" if name == "staging" else "production"
+    else:
+        raise PrestoPayConfigError(
+            "PRESTOPAY_ENV must be 'staging' or 'production' (or set PRESTOPAY_BASE_URL)", field="PRESTOPAY_ENV"
+        )
+    merchant_id = value("PRESTOPAY_MID")
+    if merchant_id is None:
+        raise PrestoPayConfigError("PRESTOPAY_MID is not set", field="PRESTOPAY_MID")
+    return _EnvSettings(
+        environment=environment,
+        merchant_id=merchant_id,
+        private_key=text_or_file("PRESTOPAY_PRIVATE_KEY"),
+        private_key_password=value("PRESTOPAY_PRIVATE_KEY_PASSWORD"),
+        presto_public_key=text_or_file("PRESTOPAY_PUBLIC_KEY"),
+    )
+
+
+def _unescape_newlines(pem: str) -> str:
+    # Secrets managers and one-line .env files often carry PEM text with literal backslash-n sequences.
+    if "\n" not in pem and "\\n" in pem:
+        return pem.replace("\\n", "\n")
+    return pem
+
+
 def _raw_operation(path: str) -> OperationSpec:
     if not isinstance(path, str) or _RAW_PATH.fullmatch(path) is None:
         raise PrestoPayConfigError(f"{path!r} is not a gateway path under /v1/ext/", field="path")
@@ -126,6 +192,7 @@ class _BaseClient(Generic[HttpClientT]):
         private_key_password: Password = None,
         deadline: float = 30.0,
         retry_reads: RetryReads | None = None,
+        webhooks: WebhookOptions | None = None,
         strict: bool = False,
         redact_error_bodies: bool = True,
         http_client: HttpClientT | None = None,
@@ -146,9 +213,32 @@ class _BaseClient(Generic[HttpClientT]):
         self._deadline = float(deadline)
         self._retry_reads = retry_reads if retry_reads is not None else RetryReads()
         self._clock = clock
+        self.webhooks = WebhookVerifier(
+            merchant_ids=frozenset([merchant_id]),
+            presto_public_keys=self._protocol.presto_public_keys,
+            max_timestamp_age=(webhooks or WebhookOptions()).max_timestamp_age,
+            strict=strict,
+            redact_error_bodies=redact_error_bodies,
+            clock=clock,
+        )
         self._owns_http_client = http_client is None
         self._http: HttpClientT = http_client if http_client is not None else self._new_http_client()
         self._attach_namespaces()
+
+    @classmethod
+    def from_env(
+        cls, env: Mapping[str, str], *, http_client: HttpClientT | None = None, **options: Unpack[ClientOptions]
+    ) -> Self:
+        settings = _settings_from_env(env)
+        return cls(
+            environment=settings.environment,
+            merchant_id=settings.merchant_id,
+            private_key=settings.private_key,
+            private_key_password=settings.private_key_password,
+            presto_public_key=settings.presto_public_key,
+            http_client=http_client,
+            **options,
+        )
 
     def _new_http_client(self) -> HttpClientT:
         raise NotImplementedError
@@ -325,6 +415,12 @@ class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
         self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: TracebackType | None
     ) -> None:
         await self.aclose()
+
+
+def from_env(
+    env: Mapping[str, str], *, http_client: httpx.Client | None = None, **options: Unpack[ClientOptions]
+) -> PrestoPay:
+    return PrestoPay.from_env(env, http_client=http_client, **options)
 
 
 def _sync_operation(build: Callable[P, Call[T]]) -> Callable[Concatenate[Payments, P], T]:
