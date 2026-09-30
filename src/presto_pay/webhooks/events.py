@@ -25,13 +25,17 @@ class WebhookEvent:
     user_ref_num: str | None
     additional_data: str | None
     payment_details: tuple[PaymentDetail, ...]
-    payment_status: str
+    payment_status: str | None
     raw: Mapping[str, JsonScalar] = field(repr=False, compare=False)
 
 
-def derived_payment_status(event_code: str, success: bool) -> str:
+def derived_payment_status(event_code: str, success: bool) -> str | None:
     if event_code == EventCode.AUTHORISED:
         return PaymentStatus.AUTHORISED.value if success else PaymentStatus.FAILED.value
+    # A failed refund or reversal leaves the payment in whatever state it was already in, which this event does
+    # not carry, so there is no status to report.
+    if not success and event_code in (EventCode.REFUNDED, EventCode.REVERSED):
+        return None
     return event_code
 
 

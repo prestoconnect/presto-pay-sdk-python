@@ -190,6 +190,9 @@ from presto_pay import create_webhook_verifier
 verifier = create_webhook_verifier(merchant_id=os.environ["PRESTOPAY_MID"], presto_public_key=Path("presto.der"))
 ```
 
+`event.payment_status` is the status the event moves the payment to. It is `None` for a failed `Refunded` or
+`Reversed` event, because the payment keeps its previous status.
+
 For Django, FastAPI and Flask handlers, deduplication and the raw-body accessor for each framework, see
 [webhook handling](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/webhooks.md).
 

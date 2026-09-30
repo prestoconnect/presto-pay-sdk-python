@@ -29,7 +29,7 @@ class WebhookRecord:
     event_ref_num: str
     txn_ref_num: str
     event_code: str
-    payment_status: str
+    payment_status: str | None
     success: bool
     amount_minor_units: int
     currency_code: str

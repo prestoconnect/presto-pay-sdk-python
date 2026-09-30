@@ -74,13 +74,15 @@ class TestAccepted:
             ("Authorised", False, PaymentStatus.FAILED),
             ("Cancelled", True, PaymentStatus.CANCELLED),
             ("Refunded", True, PaymentStatus.REFUNDED),
-            ("Refunded", False, PaymentStatus.REFUNDED),
-            ("Reversed", False, PaymentStatus.REVERSED),
+            ("Refunded", False, None),
+            ("Reversed", True, PaymentStatus.REVERSED),
+            ("Reversed", False, None),
+            ("Cancelled", False, PaymentStatus.CANCELLED),
             ("Expired", False, PaymentStatus.EXPIRED),
             ("SomethingNew", True, "SomethingNew"),
         ],
     )
-    def test_derived_payment_status(self, event_code: str, success: bool, status: str) -> None:
+    def test_derived_payment_status(self, event_code: str, success: bool, status: str | None) -> None:
         event = verifier().verify(signed_json(webhook(eventCode=event_code, success=success)))
         assert event.payment_status == status
 

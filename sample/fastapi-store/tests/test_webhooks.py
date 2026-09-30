@@ -26,3 +26,9 @@ def test_forged_webhook_is_acknowledged_but_not_recorded(client: TestClient) -> 
     status, body, _ = _notify(client, json.dumps(forged).encode())
     assert (status, body) == (200, b'{"resend":false}')
     assert "Recent webhooks" not in client.get("/").text
+
+
+def test_failed_refund_leaves_the_status_unchanged(client: TestClient) -> None:
+    assert _notify(client, webhook(eventCode="Refunded", success=False))[1] == b'{"resend":false}'
+    html = client.get("/").text
+    assert '<td class="px-3 py-2">unchanged</td>' in html

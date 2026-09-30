@@ -17,7 +17,7 @@
       <tr class="border-t border-slate-200">
         <td class="px-3 py-2">{{ w.received_at.strftime('%H:%M:%S') }}</td>
         <td class="px-3 py-2">{{ w.event_code }}</td>
-        <td class="px-3 py-2">{{ w.payment_status }}</td>
+        <td class="px-3 py-2">{{ w.payment_status or "unchanged" }}</td>
         <td class="px-3 py-2">{{ w.txn_ref_num }}</td>
         <td class="px-3 py-2{% if w.event_code == 'Authorised' %} font-semibold text-green-600{% endif %}">{{ w.success | lower }}</td>
       </tr>

@@ -59,8 +59,16 @@ redelivery can try again.
   covers SDK errors from calls your fulfilment code makes: a `query` that fails inside the handler has
   `source="response"`, so the event is redelivered rather than lost.
 
-The event's `payment_status` is derived from it. For `Authorised` it is `Authorised` or `Failed` depending on
-`success`. For other events it is the event code. `query` remains the authoritative source of payment state.
+The event's `payment_status` is derived from its event code and `success`:
+
+| Event | `success: true` | `success: false` |
+|-------|-----------------|------------------|
+| `Authorised` | `Authorised` | `Failed` |
+| `Refunded`, `Reversed` | the event code | `None`: the refund or reversal failed, so the payment keeps its previous status |
+| any other | the event code | the event code |
+
+When `payment_status` is `None`, leave the status you have stored for the payment unchanged. `query` remains the
+authoritative source of payment state.
 
 ## Django
 
