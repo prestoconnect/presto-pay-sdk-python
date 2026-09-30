@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import httpx
+import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+from presto_pay import AsyncPrestoPay, Environment, PrestoPay, RetryReads
 
 SPEC = Path(__file__).resolve().parent.parent / "spec"
 KEYS = SPEC / "keys"
@@ -102,3 +107,64 @@ def init_success(**overrides: Any) -> dict[str, Any]:
     }
     body.update(overrides)
     return body
+
+
+def ok(body: dict[str, Any]) -> httpx.Response:
+    return httpx.Response(200, content=signed_json(body))
+
+
+def raw_success(**fields: Any) -> dict[str, Any]:
+    return {"prestoMrn": MRN, "success": True, "ts": NOW_TS, "errorCode": "", "errorMessage": "", **fields}
+
+
+Step = httpx.Response | Exception | Callable[[httpx.Request], httpx.Response]
+
+
+class Gateway:
+    """Plays the gateway from a script: each request consumes the next response, exception or callable."""
+
+    def __init__(self, *steps: Step) -> None:
+        self.steps = list(steps)
+        self.requests: list[httpx.Request] = []
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        if not self.steps:
+            raise AssertionError(f"unexpected request #{len(self.requests)} to {request.url}")
+        step = self.steps.pop(0)
+        if isinstance(step, Exception):
+            raise step
+        if isinstance(step, httpx.Response):
+            return step
+        return step(request)
+
+    def bodies(self) -> list[dict[str, Any]]:
+        return [json.loads(request.content) for request in self.requests]
+
+
+def client_options(**overrides: Any) -> dict[str, Any]:
+    options: dict[str, Any] = {
+        "environment": Environment(BASE_URL),
+        "merchant_id": MID,
+        "private_key": TEST_PRIVATE_KEY,
+        "presto_public_key": TEST_CERT_PEM,
+        "clock": lambda: NOW,
+        "retry_reads": RetryReads(initial_backoff=0.0, max_backoff=0.0),
+    }
+    options.update(overrides)
+    return options
+
+
+def sync_client(gateway: Gateway, **overrides: Any) -> PrestoPay:
+    overrides.setdefault("http_client", httpx.Client(transport=httpx.MockTransport(gateway)))
+    return PrestoPay(**client_options(**overrides))
+
+
+def async_client(gateway: Gateway, **overrides: Any) -> AsyncPrestoPay:
+    overrides.setdefault("http_client", httpx.AsyncClient(transport=httpx.MockTransport(gateway)))
+    return AsyncPrestoPay(**client_options(**overrides))
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
