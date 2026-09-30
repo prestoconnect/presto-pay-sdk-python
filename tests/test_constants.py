@@ -48,7 +48,7 @@ def test_payment_methods_match_the_contract() -> None:
 
 
 def test_event_codes_match_the_contract() -> None:
-    section = CONTRACT.split("Event codes, open-ended", 1)[1].split(". For", 1)[0]
+    section = re.split(r"\.(?:\s|$)", CONTRACT.split("Event codes, open-ended", 1)[1], maxsplit=1)[0]
     assert _values(EventCode) == set(re.findall(r"`([^`]+)`", section))
 
 

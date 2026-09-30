@@ -254,9 +254,18 @@ Three rules follow from the retries:
    `ts` is a malformed body. Widening or disabling the check is acceptable only where `eventRefNum` is
    deduplicated. **[P]**
 
-Event codes, open-ended **[U]**: `Authorised`, `Cancelled`, `Reversed`, `Refunded`, `Expired`. For `Authorised`,
-`success` says whether authorisation succeeded, so the derived payment status is `Authorised` or `Failed`; for
-the others the event code is the status. `query` remains the authoritative source of payment state.
+Event codes, open-ended **[U]**: `Authorised`, `Cancelled`, `Reversed`, `Refunded`, `Expired`.
+
+**A webhook carries no payment status.** It reports that something happened to a payment: `eventCode` says what,
+and `success` says whether it succeeded. A `Refunded` or `Reversed` event with `success: false` is a refund or
+reversal that failed, and the payment keeps its previous status, which the event does not carry **[C]**
+(confirmed API behaviour, 2026-09-30). So the resulting status cannot be read off the event:
+
+- An SDK must **not** derive a payment status from `eventCode` and `success`. It exposes both exactly as sent.
+  **[P]**
+- A handler that needs the payment's status calls `query`, which is authoritative whatever order webhooks and the
+  payer's redirect arrive in. If that `query` fails, the handler answers `{"resend":true}` — the failure is the
+  merchant's, not the webhook's — so the redelivery can try again. **[P]**
 
 ## 8. Operation fields
 
