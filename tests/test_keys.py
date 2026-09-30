@@ -174,3 +174,8 @@ def test_public_key_list_for_rotation() -> None:
 def test_empty_public_key_list() -> None:
     with pytest.raises(PrestoPayConfigError, match="at least one"):
         coerce_public_keys([])
+
+
+def test_legacy_rc2_keystore_like_the_onboarding_one() -> None:
+    keystore = Path(__file__).parent / "fixtures" / "test-merchant-legacy.p12"
+    assert _signs_like_the_test_key(load_private_key(keystore, "changeit"))

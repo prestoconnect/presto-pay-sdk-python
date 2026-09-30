@@ -20,6 +20,16 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest
 
+  minimum-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - run: uv sync --resolution lowest-direct
+      - run: uv run --no-sync pytest
+
   lint:
     runs-on: ubuntu-latest
     steps:
