@@ -75,6 +75,9 @@ class FieldReader:
             raise MappingError(f"{key} should be a boolean, got {type(value).__name__}")
         return value
 
+    def nested(self, key: str) -> list[FieldReader]:
+        return [FieldReader(item, strict=self._strict) for item in self.list_of_objects(key)]
+
     def list_of_objects(self, key: str) -> list[WireBody]:
         value = self._body.get(key)
         if value is None or value == "":

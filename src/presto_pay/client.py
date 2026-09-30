@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import ipaddress
 import re
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import TracebackType
-from typing import ClassVar, Generic, Literal, Self, TypeVar
+from typing import ClassVar, Concatenate, Generic, Literal, ParamSpec, Self, TypeVar
 from urllib.parse import urlsplit
 
 import httpx
@@ -36,8 +37,12 @@ from presto_pay._core.protocol import (
 from presto_pay._core.redaction import describe_body, describe_canonical
 from presto_pay._core.retry import RetryReads, SendLoop
 from presto_pay.errors import PrestoPayConfigError, PrestoPayResponseError, PrestoPaySignatureError, ReconcileKey
+from presto_pay.payments import to_wire
+from presto_pay.payments.inputs import check_documented_lengths
+from presto_pay.payments.to_wire import Call
 
 T = TypeVar("T")
+P = ParamSpec("P")
 HttpClientT = TypeVar("HttpClientT", httpx.Client, httpx.AsyncClient)
 
 _RAW_PATH = re.compile(r"/v1/ext/[A-Za-z0-9/_-]+")
@@ -168,6 +173,11 @@ class _BaseClient(Generic[HttpClientT]):
     ) -> PreparedRequest:
         return prepare(operation, fields, self._protocol, self._clock(), reconcile_by)
 
+    def _checked(self, call: Call[T]) -> Call[T]:
+        if self._protocol.strict:
+            check_documented_lengths(call.fields, call.documented_lengths, call.operation.name)
+        return call
+
     def _send_loop(self, operation: OperationSpec) -> SendLoop:
         return SendLoop(write=operation.write, policy=self._retry_reads, deadline=self._deadline)
 
@@ -200,9 +210,11 @@ class _BaseClient(Generic[HttpClientT]):
 
 
 class PrestoPay(_BaseClient[httpx.Client]):
+    payments: Payments
     raw: Raw
 
     def _attach_namespaces(self) -> None:
+        self.payments = Payments(self)
         self.raw = Raw(self)
 
     def _new_http_client(self) -> httpx.Client:
@@ -239,6 +251,10 @@ class PrestoPay(_BaseClient[httpx.Client]):
                 return interpret(prepared, response, self._protocol, mapper)
             time.sleep(delay)
 
+    def _run(self, call: Call[T]) -> T:
+        call = self._checked(call)
+        return self._execute(call.operation, call.fields, call.reconcile_by, call.mapper)
+
     def close(self) -> None:
         if self._owns_http_client:
             self._http.close()
@@ -253,9 +269,11 @@ class PrestoPay(_BaseClient[httpx.Client]):
 
 
 class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
+    payments: AsyncPayments
     raw: AsyncRaw
 
     def _attach_namespaces(self) -> None:
+        self.payments = AsyncPayments(self)
         self.raw = AsyncRaw(self)
 
     def _new_http_client(self) -> httpx.AsyncClient:
@@ -292,6 +310,10 @@ class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
                 return interpret(prepared, response, self._protocol, mapper)
             await asyncio.sleep(delay)
 
+    async def _run(self, call: Call[T]) -> T:
+        call = self._checked(call)
+        return await self._execute(call.operation, call.fields, call.reconcile_by, call.mapper)
+
     async def aclose(self) -> None:
         if self._owns_http_client:
             await self._http.aclose()
@@ -303,6 +325,42 @@ class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
         self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: TracebackType | None
     ) -> None:
         await self.aclose()
+
+
+def _sync_operation(build: Callable[P, Call[T]]) -> Callable[Concatenate[Payments, P], T]:
+    @functools.wraps(build)
+    def operation(self: Payments, /, *args: P.args, **kwargs: P.kwargs) -> T:
+        return self._client._run(build(*args, **kwargs))
+
+    return operation
+
+
+def _async_operation(build: Callable[P, Call[T]]) -> Callable[Concatenate[AsyncPayments, P], Awaitable[T]]:
+    @functools.wraps(build)
+    async def operation(self: AsyncPayments, /, *args: P.args, **kwargs: P.kwargs) -> T:
+        return await self._client._run(build(*args, **kwargs))
+
+    return operation
+
+
+class Payments:
+    def __init__(self, client: PrestoPay) -> None:
+        self._client = client
+
+    init = _sync_operation(to_wire.init)
+    query = _sync_operation(to_wire.query)
+    reverse = _sync_operation(to_wire.reverse)
+    refund = _sync_operation(to_wire.refund)
+
+
+class AsyncPayments:
+    def __init__(self, client: AsyncPrestoPay) -> None:
+        self._client = client
+
+    init = _async_operation(to_wire.init)
+    query = _async_operation(to_wire.query)
+    reverse = _async_operation(to_wire.reverse)
+    refund = _async_operation(to_wire.refund)
 
 
 class Raw:

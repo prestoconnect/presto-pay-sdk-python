@@ -3,7 +3,7 @@ from presto_pay._core.keys import PrestoPublicKey, PrivateKey, load_presto_publi
 from presto_pay._core.retry import RetryReads
 from presto_pay._core.timestamp import format_gateway_timestamp, parse_gateway_timestamp
 from presto_pay._version import __version__
-from presto_pay.client import AsyncPrestoPay, AsyncRaw, Environment, PrestoPay, Raw
+from presto_pay.client import AsyncPayments, AsyncPrestoPay, AsyncRaw, Environment, Payments, PrestoPay, Raw
 from presto_pay.constants import (
     ErrorCode,
     EventCode,
@@ -23,16 +23,30 @@ from presto_pay.errors import (
     ReconcileKey,
     may_have_succeeded,
 )
+from presto_pay.payments.inputs import LineItem
+from presto_pay.payments.results import (
+    InitResult,
+    PaymentDetail,
+    QueryResult,
+    RefundDetail,
+    RefundResult,
+    ReverseResult,
+)
 
 __all__ = [
+    "AsyncPayments",
     "AsyncPrestoPay",
     "AsyncRaw",
     "Environment",
     "ErrorCode",
     "EventCode",
+    "InitResult",
     "JsonScalar",
+    "LineItem",
+    "PaymentDetail",
     "PaymentMethod",
     "PaymentStatus",
+    "Payments",
     "PrestoPay",
     "PrestoPayApiError",
     "PrestoPayConfigError",
@@ -42,11 +56,15 @@ __all__ = [
     "PrestoPayTransportError",
     "PrestoPublicKey",
     "PrivateKey",
+    "QueryResult",
     "Raw",
     "ReconcileKey",
+    "RefundDetail",
+    "RefundResult",
     "RefundStatus",
     "RetryReads",
     "ReversalStatus",
+    "ReverseResult",
     "TxnType",
     "__version__",
     "canonicalize",

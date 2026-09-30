@@ -45,7 +45,6 @@ _GATEWAY_KEY = _test_rsa_key()
 
 
 def naive_canonical(body: dict[str, Any]) -> str:
-    """A second, deliberately simple canonicalizer, so tests do not sign mock responses with the code under test."""
 
     def render(value: Any) -> str:
         if value is None:
@@ -121,8 +120,6 @@ Step = httpx.Response | Exception | Callable[[httpx.Request], httpx.Response]
 
 
 class Gateway:
-    """Plays the gateway from a script: each request consumes the next response, exception or callable."""
-
     def __init__(self, *steps: Step) -> None:
         self.steps = list(steps)
         self.requests: list[httpx.Request] = []
