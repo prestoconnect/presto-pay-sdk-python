@@ -7,7 +7,7 @@ from typing import Any
 from presto_pay import PaymentMethod
 
 MINIMUM_AMOUNT = Decimal("0.01")
-MAXIMUM_MINOR_UNITS = 2**31 - 1
+MAXIMUM_AMOUNT = Decimal("21474836.47")
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,7 +40,7 @@ class CheckoutForm:
             errors["amountInRinggit"] = "Amount is required"
         elif amount < MINIMUM_AMOUNT:
             errors["amountInRinggit"] = "Amount must be at least 0.01"
-        elif to_minor_units(amount) > MAXIMUM_MINOR_UNITS:
+        elif amount > MAXIMUM_AMOUNT:
             errors["amountInRinggit"] = "Amount is too large"
 
         show_payment_methods = data.get("showPaymentMethods") is True

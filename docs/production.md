@@ -14,8 +14,10 @@ and the gateway rejects timestamps more than 15 minutes out with `1005`. When th
 
 **Deadlines.** `deadline` (30 s by default) covers the whole call, including retries and backoff. Set it below
 the request budget of your web server or task runner so the SDK's exception reaches your code before the process
-is killed mid-retry. `AsyncPrestoPay` also respects an outer `asyncio.timeout()`, and cancellation is never
-turned into an SDK error.
+is killed mid-retry. `AsyncPrestoPay` enforces the deadline exactly, respects an outer `asyncio.timeout()`,
+and never turns cancellation into an SDK error. `PrestoPay` checks the deadline after each chunk of the
+response, and limits each connect, write and read to the time remaining. A single stalled network operation can
+still run up to that limit, so leave some headroom.
 
 **Clients and pools.** Create one client per process and reuse it. An injected `httpx.Client` is never closed by
 the SDK, so it is safe to share across Celery tasks or Django requests. Build the client after forking, not
@@ -26,9 +28,9 @@ before.
 need manual or offline processing depending on the payment method, so an accepted refund request doesn't mean the
 refund is complete.
 
-**Logging.** Error bodies and canonical strings have card and receipt details redacted by default. Keep
-`redact_error_bodies=True` in production. Result dataclasses leave `raw` and card fields out of their `repr`,
-but `dataclasses.asdict(result)` includes them.
+**Logging.** Error bodies and canonical strings have card, receipt and customer details (including `qrValue` and
+`payerRefNum`) redacted by default. Keep `redact_error_bodies=True` in production. Result dataclasses leave `raw`
+and card fields out of their `repr`, but `dataclasses.asdict(result)` includes them.
 
 **Staging.** Run staging with `strict=True`, which rejects contract drift the production default tolerates. The
 opt-in smoke test (`PRESTOPAY_STAGING_SMOKE=1 pytest -m staging`) exercises the payment lifecycle against real

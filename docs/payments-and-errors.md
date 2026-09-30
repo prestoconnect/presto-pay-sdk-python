@@ -92,10 +92,13 @@ from presto_pay import PrestoPayError
 try:
     result = presto.payments.refund(...)
 except PrestoPayError as exc:
-    if not exc.may_have_taken_effect:
+    if not exc.may_have_taken_effect or exc.reconcile_by is None:
         raise
     current = presto.payments.query(**exc.reconcile_by)
 ```
+
+`reconcile_by` is always set for an ambiguous `init`, `reverse` or `refund`. It is `None` for
+`presto.raw.post`, which can't know the lookup key for an endpoint the SDK doesn't model.
 
 The same failures on `query` mean nothing happened, and the SDK retries them automatically. A business error
 (`success: false`) means nothing happened, with one exception: `1203` on `init` proves a record exists but not

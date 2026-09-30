@@ -71,3 +71,9 @@ def test_gateway_rejection_is_a_502_with_the_error_code(client: FlaskClient, gat
     assert response.status_code == 502
     body = response.get_json()
     assert (body["errorCode"], body["errorMessage"], body["mayHaveTakenEffect"]) == ("1201", "Invalid input.", False)
+
+
+def test_huge_exponent_amount_is_a_400_not_a_crash(client: FlaskClient, gateway: Gateway) -> None:
+    response = client.post("/checkout", json={"displayDesc": "x", "amountInRinggit": "1e30"})
+    assert (response.status_code, response.get_json()) == (400, {"amountInRinggit": "Amount is too large"})
+    assert gateway.requests == []

@@ -12,9 +12,9 @@ class NotifyAck:
 
     @staticmethod
     def for_error(exc: BaseException) -> bytes:
-        # A bad signature, a foreign mid, a stale ts or a malformed body fails the same way on every
-        # redelivery, so asking Presto to resend only builds a loop. Resend is for the merchant's own
-        # transient failures.
-        if isinstance(exc, PrestoPaySignatureError | PrestoPayResponseError):
+        # A webhook that fails verification (bad signature, foreign mid, stale ts, malformed body) fails the same
+        # way on every redelivery, so asking Presto to resend only builds a loop. The same exception types raised
+        # by an outbound call inside the handler are the merchant's own failure, and the event must come again.
+        if isinstance(exc, PrestoPaySignatureError | PrestoPayResponseError) and exc.source == "webhook":
             return NotifyAck.OK
         return NotifyAck.RESEND

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 import time
 from collections.abc import Callable
@@ -33,7 +34,9 @@ class RetryReads:
     def __post_init__(self) -> None:
         if isinstance(self.max_retries, bool) or not isinstance(self.max_retries, int) or self.max_retries < 0:
             raise PrestoPayConfigError("retry_reads.max_retries must be an int >= 0", field="retry_reads")
-        if not 0 <= self.initial_backoff <= self.max_backoff:
+        if not (math.isfinite(self.initial_backoff) and math.isfinite(self.max_backoff)) or not (
+            0 <= self.initial_backoff <= self.max_backoff
+        ):
             raise PrestoPayConfigError("retry_reads needs 0 <= initial_backoff <= max_backoff", field="retry_reads")
 
 
@@ -54,6 +57,10 @@ def parse_retry_after(value: str | None, now: float) -> float | None:
     return max(0.0, moment.timestamp() - now)
 
 
+class DeadlineExceeded(Exception):
+    pass
+
+
 class SendLoop:
     def __init__(
         self,
@@ -70,6 +77,7 @@ class SendLoop:
         self._monotonic = monotonic
         self._wall_clock = wall_clock
         self._rng = rng
+        self._deadline = deadline
         self._deadline_at = monotonic() + deadline
         self._attempt = 0
 
@@ -78,6 +86,13 @@ class SendLoop:
 
     def timeout(self) -> httpx.Timeout:
         return httpx.Timeout(max(self.remaining(), 0.001))
+
+    def deadline_exceeded(self) -> DeadlineExceeded:
+        return DeadlineExceeded(f"the {self._deadline:g}s deadline for the whole call ran out")
+
+    def check_deadline(self) -> None:
+        if self.remaining() <= 0:
+            raise self.deadline_exceeded()
 
     def delay_after_transport_error(self, exc: BaseException) -> float | None:
         if self._write and not request_not_sent(exc):

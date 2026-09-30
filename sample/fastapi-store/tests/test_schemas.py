@@ -31,6 +31,7 @@ def test_non_object_body_is_a_field_map_not_a_422(client: TestClient, body: byte
         ("abc", "Amount is required"),
         ("NaN", "Amount is required"),
         ("99999999", "Amount is too large"),
+        ("1e30", "Amount is too large"),
     ],
 )
 def test_unusable_amounts_are_rejected(client: TestClient, amount: str, message: str) -> None:

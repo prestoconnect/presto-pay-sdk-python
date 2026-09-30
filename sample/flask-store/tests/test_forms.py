@@ -19,7 +19,7 @@ def test_non_object_payload_is_a_validation_error(payload: object) -> None:
     assert set(errors) == {"displayDesc", "amountInRinggit"}
 
 
-@pytest.mark.parametrize("amount", ["abc", "NaN", "Infinity", True, "99999999"])
+@pytest.mark.parametrize("amount", ["abc", "NaN", "Infinity", True, "99999999", "1e30", "1e999999"])
 def test_unusable_amounts_are_rejected(amount: object) -> None:
     form, errors = CheckoutForm.from_json({"displayDesc": "x", "amountInRinggit": amount})
     assert form is None

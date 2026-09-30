@@ -52,9 +52,12 @@ redelivery can try again.
 
 `NotifyAck.for_error(exc)` picks the reply for a caught exception:
 
-- `PrestoPaySignatureError` and `PrestoPayResponseError` → `OK`. A bad signature, a foreign `mid`, a stale `ts`
-  or a malformed body fails the same way on every redelivery, so asking for a resend only builds a loop.
-- Anything else → `RESEND`. This covers your own transient failures, such as the database being down.
+- A `PrestoPaySignatureError` or `PrestoPayResponseError` raised by `verify()` (its `source` is `"webhook"`)
+  → `OK`. A bad signature, a foreign `mid`, a stale `ts` or a malformed body fails the same way on every
+  redelivery, so asking for a resend only builds a loop.
+- Anything else → `RESEND`. This covers your own transient failures, such as the database being down. It also
+  covers SDK errors from calls your fulfilment code makes: a `query` that fails inside the handler has
+  `source="response"`, so the event is redelivered rather than lost.
 
 The event's `payment_status` is derived from it. For `Authorised` it is `Authorised` or `Failed` depending on
 `success`. For other events it is the event code. `query` remains the authoritative source of payment state.

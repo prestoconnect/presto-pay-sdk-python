@@ -1,7 +1,7 @@
 # Presto Pay SDK for Python
 
 [![CI](https://github.com/prestoconnect/presto-pay-sdk-python/actions/workflows/ci.yml/badge.svg)](https://github.com/prestoconnect/presto-pay-sdk-python/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/LICENSE)
 
 A Python 3.11+ library for the **Presto Connect** payment gateway. It takes care of the parts of a signed
 payment API that are easy to get slightly wrong by hand: RSA request signing, verifying response and webhook
@@ -75,7 +75,7 @@ async with AsyncPrestoPay(environment="staging", ...) as presto:
 ```
 
 Key material is parsed when the client is constructed, so a bad key or password fails at startup rather than
-on the first payment. Give each order its own `txn_ref_num`. See [payments and errors](docs/payments-and-errors.md)
+on the first payment. Give each order its own `txn_ref_num`. See [payments and errors](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/payments-and-errors.md)
 for `query`, `reverse` and `refund`.
 
 ## Merchant identity
@@ -129,6 +129,10 @@ Retries use exponential backoff with full jitter and honour `Retry-After`. All a
 share one whole-call `deadline` (30 s by default). Configure them with `retry_reads=RetryReads(max_retries=2,
 initial_backoff=0.2, max_backoff=5.0)`.
 
+`AsyncPrestoPay` enforces the deadline exactly. `PrestoPay` limits each connect, write and read to the time
+remaining, and checks the deadline after each chunk of the response. A single network operation that stalls
+can still run up to its own limit before the deadline is noticed.
+
 When the outcome is unknown, the error says so, and it carries the lookup key you need to find out:
 
 ```python
@@ -137,14 +141,15 @@ from presto_pay import PrestoPayError
 try:
     payment = presto.payments.init(...)
 except PrestoPayError as exc:
-    if not exc.may_have_taken_effect:
+    if not exc.may_have_taken_effect or exc.reconcile_by is None:
         raise
     payment = presto.payments.query(**exc.reconcile_by)
 ```
 
 `may_have_taken_effect` is set where the error is raised, because the answer depends on the operation. For
 example, an HTTP 502 on `init` is ambiguous, but an HTTP 502 on `query` means nothing happened. `reconcile_by`
-holds `presto_mrn` plus `txn_ref_num` after `init`, or `payment_ref_num` after `reverse` and `refund`.
+holds `presto_mrn` plus `txn_ref_num` after `init`, or `payment_ref_num` after `reverse` and `refund`. It is
+`None` after `presto.raw.post`, which can't know the lookup key for an endpoint the SDK doesn't model.
 
 `init` is idempotent by `txn_ref_num` on the gateway side. Resending an existing `txn_ref_num` returns that
 payment's current status instead of creating a second one. Business error `1203` proves a record exists but not
@@ -172,9 +177,10 @@ def presto_notify():
     return body, 200, {"Content-Type": NotifyAck.CONTENT_TYPE}
 ```
 
-`NotifyAck.for_error` replies `{"resend":false}` to permanent failures: a bad signature, a foreign `mid`, a
-stale `ts`, or a malformed body. Presto retries at 1, 2, 5 and 10 minutes, and each of those redeliveries would
-fail the same way. For anything else, meaning your own transient failure, it replies `{"resend":true}`.
+`NotifyAck.for_error` replies `{"resend":false}` only when verifying the webhook itself failed: a bad
+signature, a foreign `mid`, a stale `ts`, or a malformed body. Presto retries at 1, 2, 5 and 10 minutes, and each
+of those redeliveries would fail the same way. Anything else gets `{"resend":true}`. That includes your own
+transient failures, and SDK errors from calls your handler makes, such as a `query` that fails.
 
 A process that only receives webhooks doesn't need the private key:
 
@@ -185,7 +191,7 @@ verifier = create_webhook_verifier(merchant_id=os.environ["PRESTOPAY_MID"], pres
 ```
 
 For Django, FastAPI and Flask handlers, deduplication and the raw-body accessor for each framework, see
-[webhook handling](docs/webhooks.md).
+[webhook handling](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/webhooks.md).
 
 ## Errors
 
@@ -202,8 +208,9 @@ Every error is a `PrestoPayError` and carries `operation`, `may_have_taken_effec
 Compare error codes against `ErrorCode`, for example `ErrorCode.CLOCK_SKEW == "1005"`. The original `httpx`
 exception is chained as `__cause__`. No `httpx` type is part of the public API.
 
-**Redaction.** `raw_body` and `canonical` can contain card and receipt details. By default the values of
-`cardBin`, `cardSummary`, `receiptEmail` and `receiptName` are replaced with `[redacted]`, including inside the
+**Redaction.** `raw_body` and `canonical` can contain card, receipt and customer details. By default the
+values of `cardBin`, `cardSummary`, `receiptEmail`, `receiptName`, `qrValue`, `payerRefNum`, `bindData`,
+`deviceIp`, `deviceRefNum` and `transactionalData` are replaced with `[redacted]`, including inside the
 stringified `paymentDetails`. An unparseable body is replaced entirely. `str()` and `repr()` of an error never
 include a body. To keep full bodies for debugging, pass `redact_error_bodies=False`.
 
@@ -238,24 +245,24 @@ UTC+08:00. Result date fields are left as strings.
 
 ## Samples
 
-[`sample/`](sample/) is a runnable **MyStore** checkout against Presto staging. It includes the hosted and
+[`sample/`](https://github.com/prestoconnect/presto-pay-sdk-python/tree/main/sample) is a runnable **MyStore** checkout against Presto staging. It includes the hosted and
 self-hosted payment-method flows, a return page that queries the payment's status, and a webhook handler with a
 "recent webhooks" list. It comes as two self-contained projects:
 
-- [`sample/flask-store/`](sample/flask-store/): Flask on the sync `PrestoPay` client.
-- [`sample/fastapi-store/`](sample/fastapi-store/): FastAPI on the async `AsyncPrestoPay` client.
+- [`sample/flask-store/`](https://github.com/prestoconnect/presto-pay-sdk-python/tree/main/sample/flask-store): Flask on the sync `PrestoPay` client.
+- [`sample/fastapi-store/`](https://github.com/prestoconnect/presto-pay-sdk-python/tree/main/sample/fastapi-store): FastAPI on the async `AsyncPrestoPay` client.
 
-See [sample/README.md](sample/README.md).
+See [sample/README.md](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/sample/README.md).
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md) covers building, testing, code style and releasing. Report security issues
-as described in [SECURITY.md](SECURITY.md), not in a public issue.
+[CONTRIBUTING.md](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/CONTRIBUTING.md) covers building, testing, code style and releasing. Report security issues
+as described in [SECURITY.md](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/SECURITY.md), not in a public issue.
 
 `spec/` is a checked-in copy of the shared wire contract and test vectors. The commit it was copied from is
-recorded in [`spec/.source-commit`](spec/.source-commit). Real merchant or staging credentials must never be
+recorded in [`spec/.source-commit`](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/spec/.source-commit). Real merchant or staging credentials must never be
 committed to this repository.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/LICENSE).

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import ipaddress
+import math
 import re
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
@@ -200,8 +201,10 @@ class _BaseClient(Generic[HttpClientT]):
     ) -> None:
         if not isinstance(merchant_id, str) or not merchant_id:
             raise PrestoPayConfigError("merchant_id must be a non-empty string", field="merchant_id")
-        if isinstance(deadline, bool) or not isinstance(deadline, int | float) or deadline <= 0:
-            raise PrestoPayConfigError("deadline must be a positive number of seconds", field="deadline")
+        if isinstance(deadline, bool) or not isinstance(deadline, int | float) or not math.isfinite(deadline):
+            raise PrestoPayConfigError("deadline must be a positive, finite number of seconds", field="deadline")
+        if deadline <= 0:
+            raise PrestoPayConfigError("deadline must be a positive, finite number of seconds", field="deadline")
         self._protocol = ProtocolConfig(
             base_url=_resolve_environment(environment).base_url,
             merchant_id=merchant_id,
@@ -221,6 +224,13 @@ class _BaseClient(Generic[HttpClientT]):
             redact_error_bodies=redact_error_bodies,
             clock=clock,
         )
+        expected = self._http_client_class()
+        if http_client is not None and not isinstance(http_client, expected):
+            raise PrestoPayConfigError(
+                f"{type(self).__name__} needs an httpx.{expected.__name__} as http_client, "
+                f"not {type(http_client).__module__}.{type(http_client).__qualname__}",
+                field="http_client",
+            )
         self._owns_http_client = http_client is None
         self._http: HttpClientT = http_client if http_client is not None else self._new_http_client()
         self._attach_namespaces()
@@ -241,6 +251,9 @@ class _BaseClient(Generic[HttpClientT]):
         )
 
     def _new_http_client(self) -> HttpClientT:
+        raise NotImplementedError
+
+    def _http_client_class(self) -> type[HttpClientT]:
         raise NotImplementedError
 
     def _attach_namespaces(self) -> None:
@@ -310,6 +323,9 @@ class PrestoPay(_BaseClient[httpx.Client]):
     def _new_http_client(self) -> httpx.Client:
         return httpx.Client(follow_redirects=False, headers={"User-Agent": USER_AGENT})
 
+    def _http_client_class(self) -> type[httpx.Client]:
+        return httpx.Client
+
     def _execute(
         self,
         operation: OperationSpec,
@@ -321,15 +337,7 @@ class PrestoPay(_BaseClient[httpx.Client]):
         while True:
             prepared = self._prepare(operation, fields, reconcile_by)
             try:
-                response = _raw_response(
-                    self._http.post(
-                        prepared.url,
-                        content=prepared.body,
-                        headers=prepared.headers,
-                        timeout=loop.timeout(),
-                        follow_redirects=False,
-                    )
-                )
+                response = self._send_once(prepared, loop)
             except Exception as exc:
                 delay = loop.delay_after_transport_error(exc)
                 if delay is None:
@@ -340,6 +348,23 @@ class PrestoPay(_BaseClient[httpx.Client]):
             if delay is None:
                 return interpret(prepared, response, self._protocol, mapper)
             time.sleep(delay)
+
+    def _send_once(self, prepared: PreparedRequest, loop: SendLoop) -> RawResponse:
+        # httpx has no whole-request timeout: its limits apply to each connect, write and read separately, so a
+        # response that trickles in could outlive the deadline. Streaming lets the deadline be checked per chunk.
+        with self._http.stream(
+            "POST",
+            prepared.url,
+            content=prepared.body,
+            headers=prepared.headers,
+            timeout=loop.timeout(),
+            follow_redirects=False,
+        ) as response:
+            body = bytearray()
+            for chunk in response.iter_bytes():
+                body += chunk
+                loop.check_deadline()
+            return RawResponse(response.status_code, dict(response.headers.items()), bytes(body))
 
     def _run(self, call: Call[T]) -> T:
         call = self._checked(call)
@@ -369,6 +394,9 @@ class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
     def _new_http_client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(follow_redirects=False, headers={"User-Agent": USER_AGENT})
 
+    def _http_client_class(self) -> type[httpx.AsyncClient]:
+        return httpx.AsyncClient
+
     async def _execute(
         self,
         operation: OperationSpec,
@@ -380,15 +408,7 @@ class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
         while True:
             prepared = self._prepare(operation, fields, reconcile_by)
             try:
-                response = _raw_response(
-                    await self._http.post(
-                        prepared.url,
-                        content=prepared.body,
-                        headers=prepared.headers,
-                        timeout=loop.timeout(),
-                        follow_redirects=False,
-                    )
-                )
+                response = await self._send_once(prepared, loop)
             except Exception as exc:
                 delay = loop.delay_after_transport_error(exc)
                 if delay is None:
@@ -399,6 +419,23 @@ class AsyncPrestoPay(_BaseClient[httpx.AsyncClient]):
             if delay is None:
                 return interpret(prepared, response, self._protocol, mapper)
             await asyncio.sleep(delay)
+
+    async def _send_once(self, prepared: PreparedRequest, loop: SendLoop) -> RawResponse:
+        try:
+            async with asyncio.timeout(loop.remaining()):
+                return _raw_response(
+                    await self._http.post(
+                        prepared.url,
+                        content=prepared.body,
+                        headers=prepared.headers,
+                        timeout=loop.timeout(),
+                        follow_redirects=False,
+                    )
+                )
+        except TimeoutError as exc:
+            # Only this attempt's own deadline surfaces as TimeoutError; a caller's outer timeout or cancellation
+            # arrives as CancelledError and passes through untouched.
+            raise loop.deadline_exceeded() from exc
 
     async def _run(self, call: Call[T]) -> T:
         call = self._checked(call)

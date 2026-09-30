@@ -157,6 +157,11 @@ def _parse_pem_private(data: bytes, password: bytes | None, label: str, field: s
 def _parse_binary_private(data: bytes, password: bytes | None, label: str, field: str) -> object:
     with suppress(ValueError, TypeError, UnsupportedAlgorithm):
         return serialization.load_der_private_key(data, password)
+    # An unencrypted key with a password set (a shared PRESTOPAY_PRIVATE_KEY_PASSWORD, say) is still usable, just as
+    # it is for PEM; without this retry it would fall through to PKCS#12 and be reported as a wrong password.
+    if password is not None:
+        with suppress(ValueError, TypeError, UnsupportedAlgorithm):
+            return serialization.load_der_private_key(data, None)
     if _is_der_certificate(data):
         raise PrestoPayConfigError(
             f"{label} is a certificate, not a private key; pass the merchant private key or the onboarding .p12",

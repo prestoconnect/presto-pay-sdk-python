@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 
 from presto_pay._core.canonical import BodyError, canonical_string, parse_body
 from presto_pay._core.crypto import verify
-from presto_pay._core.keys import PrestoPublicKey, PublicKeyInput, coerce_public_keys
+from presto_pay._core.keys import PublicKeyInput, coerce_public_keys
 from presto_pay._core.mapping import FieldReader, MappingError
 from presto_pay._core.redaction import describe_body, describe_canonical
 from presto_pay._core.timestamp import format_epoch_seconds, parse_gateway_timestamp, to_epoch_seconds
@@ -34,15 +35,15 @@ class WebhookVerifier:
     def __init__(
         self,
         *,
-        merchant_ids: frozenset[str],
-        presto_public_keys: tuple[PrestoPublicKey, ...],
+        merchant_ids: str | Iterable[str],
+        presto_public_keys: PublicKeyInput | Sequence[PublicKeyInput],
         max_timestamp_age: float | None = DEFAULT_MAX_TIMESTAMP_AGE,
         strict: bool = False,
         redact_error_bodies: bool = True,
         clock: Callable[[], float] = time.time,
     ) -> None:
-        self._merchant_ids = merchant_ids
-        self._keys = presto_public_keys
+        self._merchant_ids = merchant_id_set(merchant_ids)
+        self._keys = coerce_public_keys(presto_public_keys)
         self._max_age = _check_max_age(max_timestamp_age)
         self._strict = strict
         self._redact = redact_error_bodies
@@ -119,8 +120,8 @@ def create_webhook_verifier(
     clock: Callable[[], float] = time.time,
 ) -> WebhookVerifier:
     return WebhookVerifier(
-        merchant_ids=merchant_id_set(merchant_id),
-        presto_public_keys=coerce_public_keys(presto_public_key),
+        merchant_ids=merchant_id,
+        presto_public_keys=presto_public_key,
         max_timestamp_age=max_timestamp_age,
         strict=strict,
         redact_error_bodies=redact_error_bodies,
@@ -150,9 +151,9 @@ def _raw_bytes(body: object) -> bytes:
 def _check_max_age(value: float | None) -> float | None:
     if value is None:
         return None
-    if isinstance(value, bool) or not isinstance(value, int | float) or value <= 0:
+    if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value) or value <= 0:
         raise PrestoPayConfigError(
-            "max_timestamp_age must be a positive number of seconds, or None to disable the check",
+            "max_timestamp_age must be a positive, finite number of seconds, or None to disable the check",
             field="max_timestamp_age",
         )
     return float(value)

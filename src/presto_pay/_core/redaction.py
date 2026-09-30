@@ -5,7 +5,20 @@ from collections.abc import Mapping
 
 from presto_pay._core.canonical import BodyError, JsonScalar, WireBody, canonical_string, dumps_compact, parse_body
 
-PERSONAL_FIELDS = frozenset({"cardBin", "cardSummary", "receiptEmail", "receiptName"})
+PERSONAL_FIELDS = frozenset(
+    {
+        "bindData",
+        "cardBin",
+        "cardSummary",
+        "deviceIp",
+        "deviceRefNum",
+        "payerRefNum",
+        "qrValue",
+        "receiptEmail",
+        "receiptName",
+        "transactionalData",
+    }
+)
 STRINGIFIED_LIST_FIELDS = frozenset({"itemList", "paymentDetails", "refundDetails"})
 REDACTED = "[redacted]"
 
