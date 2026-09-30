@@ -79,7 +79,7 @@ warn_unreachable = true
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-src = ["src", "tests", "sample", "sample/tests"]
+src = ["src", "tests", "sample/flask-store", "sample/flask-store/tests", "sample/fastapi-store", "sample/fastapi-store/tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "S", "RUF", "SIM", "PT"]
@@ -87,4 +87,4 @@ select = ["E", "F", "I", "UP", "B", "S", "RUF", "SIM", "PT"]
 [tool.ruff.lint.per-file-ignores]
 "src/presto_pay/constants.py" = ["S105"]
 "tests/**" = ["S101", "S105", "S106"]
-"sample/tests/**" = ["S101", "S105", "S106"]
+"sample/*/tests/**" = ["S101", "S105", "S106"]

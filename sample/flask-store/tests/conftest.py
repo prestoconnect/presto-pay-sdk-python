@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import json
-from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -10,13 +9,12 @@ import httpx
 import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from fastapi.testclient import TestClient
 
-from mystore import fastapi_app, flask_app
+from mystore.app import create_app
 from mystore.config import Settings
-from presto_pay import AsyncPrestoPay, Environment, PrestoPay, RetryReads
+from presto_pay import Environment, PrestoPay, RetryReads
 
-KEYS = Path(__file__).resolve().parents[2] / "spec" / "keys"
+KEYS = Path(__file__).resolve().parents[3] / "spec" / "keys"
 MID = "PW2401XH9KCX"
 MRN = "PM240110XDSFC"
 GATEWAY_TS = "20260924133756.056"
@@ -89,51 +87,33 @@ class Gateway:
 
 
 class Shop:
-    def __init__(self, name: str, client: Any, gateway: Gateway) -> None:
-        self.name = name
+    def __init__(self, client: Any, gateway: Gateway) -> None:
         self.client = client
         self.gateway = gateway
 
     def get(self, path: str) -> tuple[int, str]:
-        response = self.client.get(path)
-        if self.name == "fastapi":
-            return response.status_code, response.text
-        with response:
+        with self.client.get(path) as response:
             return response.status_code, response.get_data(as_text=True)
 
     def post_json(self, path: str, payload: object) -> tuple[int, Any]:
         response = self.client.post(path, json=payload)
-        body = response.json() if self.name == "fastapi" else response.get_json()
-        return response.status_code, body
+        return response.status_code, response.get_json()
 
     def post_raw(self, path: str, body: bytes) -> tuple[int, bytes, str]:
-        if self.name == "fastapi":
-            response = self.client.post(path, content=body, headers={"Content-Type": "application/json"})
-            return response.status_code, response.content, response.headers["content-type"]
         response = self.client.post(path, data=body, content_type="application/json")
         return response.status_code, response.get_data(), response.headers["Content-Type"]
 
 
-def _client_options(clock: Callable[[], float]) -> dict[str, Any]:
-    return {
-        "environment": Environment("https://gateway.test"),
-        "merchant_id": MID,
-        "private_key": KEYS / "test-merchant-key.pem",
-        "presto_public_key": KEYS / "test-merchant-cert.pem",
-        "retry_reads": RetryReads(max_retries=0),
-        "clock": clock,
-    }
-
-
-@pytest.fixture(params=["flask", "fastapi"])
-def shop(request: pytest.FixtureRequest) -> Iterator[Shop]:
+@pytest.fixture
+def shop() -> Shop:
     gateway = Gateway()
-    transport = httpx.MockTransport(gateway)
-    if request.param == "flask":
-        presto = PrestoPay(**_client_options(lambda: NOW), http_client=httpx.Client(transport=transport))
-        app = flask_app.create_app(SETTINGS, presto)
-        yield Shop("flask", app.test_client(), gateway)
-        return
-    async_presto = AsyncPrestoPay(**_client_options(lambda: NOW), http_client=httpx.AsyncClient(transport=transport))
-    with TestClient(fastapi_app.create_app(SETTINGS, async_presto)) as client:
-        yield Shop("fastapi", client, gateway)
+    presto = PrestoPay(
+        environment=Environment("https://gateway.test"),
+        merchant_id=MID,
+        private_key=KEYS / "test-merchant-key.pem",
+        presto_public_key=KEYS / "test-merchant-cert.pem",
+        retry_reads=RetryReads(max_retries=0),
+        clock=lambda: NOW,
+        http_client=httpx.Client(transport=httpx.MockTransport(gateway)),
+    )
+    return Shop(create_app(SETTINGS, presto).test_client(), gateway)

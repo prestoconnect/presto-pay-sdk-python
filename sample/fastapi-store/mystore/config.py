@@ -57,7 +57,7 @@ def load_settings(environ: Mapping[str, str] | None = None, env_file: Path | Non
 
     presto_mrn = values.get("PRESTOPAY_MRN", "")
     if not presto_mrn:
-        raise RuntimeError("PRESTOPAY_MRN is not set; add it to sample/.env or export it")
+        raise RuntimeError("PRESTOPAY_MRN is not set; add it to .env or export it")
 
     return Settings(
         public_base_url=values.get("APP_PUBLIC_BASE_URL", "http://localhost:8080").rstrip("/"),

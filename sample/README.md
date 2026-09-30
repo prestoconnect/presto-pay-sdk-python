@@ -4,30 +4,17 @@
 
 **MyStore** is a checkout page that runs against **Presto staging**, ported from the Java SDK's sample with
 the same UI and behaviour. It is styled with Tailwind CSS (Play CDN) and Font Awesome icons, and jQuery drives
-the page's JSON checkout calls. It ships as two apps that share everything except the web framework:
+the page's JSON checkout calls. It is built twice, as two self-contained projects. Copy whichever one matches
+your stack:
 
-| App | Framework | SDK client | Run |
-|-----|-----------|------------|-----|
-| [`mystore/flask_app.py`](mystore/flask_app.py) | Flask | `PrestoPay` (sync) | `uv run flask --app mystore.flask_app run --port 8080` |
-| [`mystore/fastapi_app.py`](mystore/fastapi_app.py) | FastAPI | `AsyncPrestoPay` (async) | `uv run uvicorn mystore.fastapi_app:create_app --factory --port 8080` |
+| Folder | Framework | SDK client | Run (from the folder) |
+|--------|-----------|------------|-----------------------|
+| [`flask-store/`](flask-store/) | Flask | `PrestoPay` (sync) | `uv run flask --app mystore.app run --port 8080` |
+| [`fastapi-store/`](fastapi-store/) | FastAPI | `AsyncPrestoPay` (async) | `uv run uvicorn mystore.app:create_app --factory --port 8080` |
 
-### Staging credentials
-
-Use the staging merchant credentials from your Presto onboarding pack. No secrets ship with the sample.
-
-1. Copy the `.p12` and `.der` files into [`keys/`](keys/). See [`keys/README.md`](keys/README.md). They are
-   gitignored.
-2. Copy [`.env.example`](.env.example) to `.env` (also gitignored) and fill in your MID, Presto MRN and keystore
-   password.
-
-| Setting | Default |
-|---------|---------|
-| Environment | `staging` |
-| Private key | `keys/presto_rm_keystore.p12` |
-| Presto public key | `keys/presto_ext_service_dev.der` |
-
-Any value can also come from an exported `PRESTOPAY_*` / `APP_*` environment variable, which takes precedence
-over `.env`. The client itself is built with `PrestoPay.from_env()` / `AsyncPrestoPay.from_env()`.
+The two folders are identical except for `mystore/app.py`, the dependencies in `pyproject.toml`, and the test
+client in `tests/conftest.py`. They share the same templates, the same form validation and the same
+`checkout.js` (the Java sample's script, unchanged). Each folder's README covers credentials and how to run it.
 
 ### Checkout UI
 
@@ -50,38 +37,6 @@ switches between the two ways to call `init`. Either way, the page's JavaScript 
   API error). API errors add `errorCode` and `errorMessage`, and signature failures add `signatureError`.
 
 `GET /return/{txnRefNum}` shows the payment result, using `payments.query()` for the authoritative status.
-
-### Source layout
-
-```
-mystore/
-├── flask_app.py      Flask routes over the sync PrestoPay client
-├── fastapi_app.py    FastAPI routes over the async AsyncPrestoPay client
-├── checkout.py       Form validation, ringgit → sen, init arguments, gateway-error bodies, return-page data
-├── config.py         .env / environment settings, startup logging
-├── store.py          In-memory recent checkouts and webhooks (deduplicated on event_ref_num)
-├── views.py          Jinja2 rendering shared by both apps
-├── templates/        index.html, return.html, _webhooks.html
-└── static/js/        checkout.js — the Java sample's script, unchanged
-tests/                Every scenario runs against both apps, with a mock gateway that signs its responses
-```
-
-### Requirements
-
-- **Python 3.11+** and [uv](https://docs.astral.sh/uv/). The sample installs the SDK from this checkout.
-
-### Run
-
-```bash
-cd sample
-uv sync
-cp .env.example .env    # then fill in your staging credentials; add the key files under keys/
-export APP_PUBLIC_BASE_URL=https://your-tunnel.example   # for webhooks and the redirect back
-uv run flask --app mystore.flask_app run --port 8080
-# or: uv run uvicorn mystore.fastapi_app:create_app --factory --port 8080
-```
-
-Open [http://localhost:8080](http://localhost:8080). Run the tests with `uv run pytest`.
 
 ### Webhooks (`notify_url`)
 

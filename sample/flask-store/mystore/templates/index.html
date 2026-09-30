@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>MyStore</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-900">
+<div class="mx-auto max-w-md px-4 py-8">
+
+  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <header class="flex items-center gap-2 bg-slate-900 px-6 py-4 text-lg font-bold text-white">
+      <i class="fa-solid fa-store" aria-hidden="true"></i>
+      <span>MyStore</span>
+    </header>
+
+    <div class="p-6">
+      <div id="checkoutAlert" class="mb-5 hidden rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+        <strong>Could not start payment</strong>
+        <p id="checkoutAlertMessage"></p>
+      </div>
+
+      <form id="checkoutForm">
+        <input type="hidden" id="pageTitle" name="pageTitle" value="{{ checkout.page_title }}"/>
+
+        <label class="mb-5 flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <span>
+            <strong class="block text-sm text-slate-900">Show payment methods on checkout</strong>
+            <span class="mt-0.5 block text-xs text-amber-800" id="toggleDesc">
+              {%- if checkout.show_payment_methods %}On: shopper selects here, before paying{% else %}Off: shopper selects after redirect, on the Presto payment page{% endif -%}
+            </span>
+          </span>
+          <span class="relative inline-flex h-6 w-11 shrink-0 items-center">
+            <input type="checkbox" id="showPaymentMethods" name="showPaymentMethods" value="true" class="peer sr-only"{% if checkout.show_payment_methods %} checked{% endif %}/>
+            <span class="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-indigo-600"></span>
+            <span class="relative h-5 w-5 translate-x-0.5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"
+                  aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <h1 class="text-xl font-bold">Checkout</h1>
+        <p class="mb-4 text-sm text-slate-500" id="checkoutHint">
+          {%- if checkout.show_payment_methods %}Enter the amount and description, then choose how you want to pay.{% else %}Enter the amount and description. You will choose how to pay on the next page.{% endif -%}
+        </p>
+
+        <div class="mb-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="amountInRinggit" class="mb-1 block text-xs font-medium text-slate-500">Amount (MYR)</label>
+            <div class="flex items-center overflow-hidden rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-indigo-100">
+              <span class="border-r border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500">RM</span>
+              <input id="amountInRinggit" name="amountInRinggit" type="number" step="0.01" min="0.01" value="{{ checkout.amount_in_ringgit }}"
+                     class="w-full border-0 px-3 py-2 text-sm focus:outline-none focus:ring-0"/>
+            </div>
+            <div id="amountInRinggitError" class="mt-1 hidden text-xs text-red-600"></div>
+          </div>
+          <div>
+            <label for="displayDesc" class="mb-1 block text-xs font-medium text-slate-500">Description</label>
+            <input id="displayDesc" name="displayDesc" type="text" value="{{ checkout.display_desc }}" maxlength="200"
+                   placeholder="What is this payment for?"
+                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500"/>
+            <div id="displayDescError" class="mt-1 hidden text-xs text-red-600"></div>
+          </div>
+        </div>
+
+        <div id="methodSection" class="mt-5 border-t border-slate-200 pt-5{% if not checkout.show_payment_methods %} hidden{% endif %}">
+          <fieldset class="mb-4">
+            <legend class="mb-3 text-sm font-semibold">Choose Payment Method</legend>
+            <div id="selectedPaymentMethodError" class="mb-2 hidden text-xs text-red-600"></div>
+
+            <div class="mb-3 flex flex-wrap gap-2" id="categoryPills"></div>
+
+            <div class="flex flex-col gap-2.5" id="methodList"></div>
+          </fieldset>
+
+          <div class="mb-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="receiptName" class="mb-1 block text-xs font-medium text-slate-500">Receipt name (optional)</label>
+              <input id="receiptName" name="receiptName" type="text" value="{{ checkout.receipt_name }}" maxlength="200"
+                     class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500"/>
+            </div>
+            <div>
+              <label for="receiptEmail" class="mb-1 block text-xs font-medium text-slate-500">Receipt email (optional)</label>
+              <input id="receiptEmail" name="receiptEmail" type="email" value="{{ checkout.receipt_email }}" maxlength="320"
+                     class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500"/>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="submitButton"
+                class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
+          <i class="fa-solid fa-lock" aria-hidden="true"></i>
+          <span id="submitButtonLabel">
+            {%- if checkout.show_payment_methods %}Pay RM {{ checkout.amount_in_ringgit }}{% else %}Continue to Payment{% endif -%}
+          </span>
+        </button>
+        <p class="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
+          <i class="fa-solid fa-lock" aria-hidden="true"></i>
+          <span id="checkoutFootnote">
+            {%- if checkout.show_payment_methods %}Secure and encrypted. Card details are entered on the Presto secure page next.{% else %}Secure and encrypted{% endif -%}
+          </span>
+        </p>
+      </form>
+    </div>
+  </section>
+
+  {% with heading = "Recent webhooks (shared)" %}{% include "_webhooks.html" %}{% endwith %}
+</div>
+
+<script>
+  window.CHECKOUT_DEFAULT_SELECTED_METHOD = {{ checkout.selected_payment_method | tojson }};
+</script>
+<script src="/js/checkout.js"></script>
+</body>
+</html>

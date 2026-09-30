@@ -31,10 +31,14 @@ jobs:
       - run: uv run --no-sync pytest
 
   sample:
+    strategy:
+      fail-fast: false
+      matrix:
+        store: [flask-store, fastapi-store]
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: sample
+        working-directory: sample/${{ matrix.store }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

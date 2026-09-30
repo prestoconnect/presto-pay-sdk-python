@@ -1,0 +1,30 @@
+[project]
+name = "presto-pay-mystore-fastapi"
+version = "0"
+description = "MyStore checkout sample for the Presto Pay Python SDK, on FastAPI"
+requires-python = ">=3.11"
+dependencies = [
+    "presto-pay-sdk",
+    "fastapi>=0.110",
+    "jinja2>=3.1",
+    "python-dotenv>=1.0",
+    "uvicorn>=0.29",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+presto-pay-sdk = { path = "../..", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["--strict-markers"]
+filterwarnings = [
+    "error",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
