@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - run: uv build
+      - name: Wheel ships py.typed and nothing outside the package
+        run: |
+          unzip -l dist/*.whl | tee wheel.txt
+          grep -q 'presto_pay/py.typed' wheel.txt
+          ! grep -E ' (spec|tests)/' wheel.txt
+      - name: Sdist carries the spec vectors and tests
+        run: |
+          tar -tzf dist/*.tar.gz | tee sdist.txt
+          grep -q '/spec/vectors/canonical.json$' sdist.txt
+          grep -q '/spec/keys/presto-staging.der$' sdist.txt
+          grep -q '/tests/test_vectors.py$' sdist.txt
+      - name: Wheel installs and imports in a clean environment
+        run: |
+          uv venv /tmp/clean
+          uv pip install --python /tmp/clean dist/*.whl
+          /tmp/clean/bin/python -c "import presto_pay; print(presto_pay.__version__)"

@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "presto-pay-sdk"
+dynamic = ["version"]
+description = "Official Python SDK for the Presto Pay payment gateway"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Presto Connect Developer", email = "developer@prestoconnect.io" }]
+keywords = ["presto", "presto pay", "payments", "payment gateway", "sdk"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial",
+    "Typing :: Typed",
+]
+dependencies = [
+    "cryptography>=42",
+    "httpx>=0.27,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/prestoconnect/presto-pay-sdk-python"
+Source = "https://github.com/prestoconnect/presto-pay-sdk-python"
+Issues = "https://github.com/prestoconnect/presto-pay-sdk-python/issues"
+Changelog = "https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.10",
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[tool.hatch.version]
+path = "src/presto_pay/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/presto_pay"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/spec",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-m", "not staging", "--strict-markers"]
+markers = [
+    "staging: calls Presto's real staging gateway; opt in with PRESTOPAY_STAGING_SMOKE=1",
+    "sockets: drives real sockets against loopback servers to prove transport failure classification",
+]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["src", "tests"]
+warn_unreachable = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "RUF", "SIM", "PT"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
