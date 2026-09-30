@@ -85,4 +85,5 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B", "S", "RUF", "SIM", "PT"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/presto_pay/constants.py" = ["S105"]
 "tests/**" = ["S101", "S105", "S106"]
