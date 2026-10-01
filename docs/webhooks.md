@@ -1,7 +1,9 @@
 # Webhook handling
 
-Presto POSTs a signed JSON body to the `notify_url` you gave on `init`, `reverse` or `refund`. The handler must
-answer HTTP 200 with `NotifyAck.OK` (`{"resend":false}`) or `NotifyAck.RESEND` (`{"resend":true}`).
+Presto POSTs a signed JSON body to the `notify_url` you gave on `init`, `reverse` or `refund`. The handler
+answers HTTP 401 if the signature is bad, and otherwise HTTP 200 with `NotifyAck.OK` (`{"resend":false}`) or
+`NotifyAck.RESEND` (`{"resend":true}`). The [quick start](../README.md#4-handle-the-webhook) has a complete
+Flask handler; this guide explains each part, with Django, Flask and FastAPI handlers at the end.
 
 ## Verify the raw body
 
@@ -50,11 +52,12 @@ redelivery can try again.
 
 ## Choosing the reply
 
-`NotifyAck.for_error(exc)` picks the reply for a caught exception:
+Answer a `PrestoPaySignatureError` from `verify()` (a bad signature, a foreign `mid` or a stale `ts`) with
+HTTP 401 and no body. For anything else, `NotifyAck.for_error(exc)` picks the reply:
 
-- A `PrestoPaySignatureError` or `PrestoPayResponseError` raised by `verify()` (its `source` is `"webhook"`)
-  → `OK`. A bad signature, a foreign `mid`, a stale `ts` or a malformed body fails the same way on every
-  redelivery, so asking for a resend only builds a loop.
+- A `PrestoPayResponseError` raised by `verify()` (its `source` is `"webhook"`), meaning a malformed body
+  → `OK`. A malformed body fails the same way on every redelivery, so asking for a resend only builds a loop.
+  `for_error` also answers `OK` for a webhook signature error, if you haven't answered 401 first.
 - Anything else → `RESEND`. This covers your own transient failures, such as the database being down. It also
   covers SDK errors from calls your fulfilment code makes: a `query` that fails inside the handler has
   `source="response"`, so the event is redelivered rather than lost.
@@ -88,7 +91,7 @@ from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from presto_pay import NotifyAck
+from presto_pay import NotifyAck, PrestoPaySignatureError
 
 from .models import PrestoWebhookEvent  # event_ref_num = models.CharField(max_length=64, unique=True)
 from .payments import presto, fulfil
@@ -99,10 +102,17 @@ from .payments import presto, fulfil
 def presto_notify(request):
     try:
         event = presto.webhooks.verify(request.body)
+    except PrestoPaySignatureError:
+        return HttpResponse(status=401)
+    except Exception as exc:
+        return HttpResponse(NotifyAck.for_error(exc), content_type=NotifyAck.CONTENT_TYPE)
+
+    try:
+        payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
         try:
             with transaction.atomic():
                 PrestoWebhookEvent.objects.create(event_ref_num=event.event_ref_num)
-                fulfil(event)
+                fulfil(event, payment.payment_status)
         except IntegrityError:
             pass
         body = NotifyAck.OK
@@ -115,7 +125,7 @@ def presto_notify(request):
 
 ```python
 from flask import Flask, request
-from presto_pay import NotifyAck
+from presto_pay import NotifyAck, PrestoPaySignatureError
 from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
@@ -125,16 +135,24 @@ app = Flask(__name__)
 def presto_notify():
     try:
         event = presto.webhooks.verify(request.get_data())
+    except PrestoPaySignatureError:
+        return "", 401
+    except Exception as exc:
+        return NotifyAck.for_error(exc), 200, {"Content-Type": NotifyAck.CONTENT_TYPE}
+
+    try:
+        payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
         try:
             db.session.add(WebhookEvent(event_ref_num=event.event_ref_num))  # unique column
             db.session.flush()
         except IntegrityError:
             db.session.rollback()
         else:
-            fulfil(event)
+            fulfil(event, payment.payment_status)
             db.session.commit()
         body = NotifyAck.OK
     except Exception as exc:
+        db.session.rollback()
         body = NotifyAck.for_error(exc)
     return body, 200, {"Content-Type": NotifyAck.CONTENT_TYPE}
 ```
@@ -144,7 +162,7 @@ def presto_notify():
 ```python
 import asyncpg
 from fastapi import FastAPI, Request, Response
-from presto_pay import AsyncPrestoPay, NotifyAck
+from presto_pay import AsyncPrestoPay, NotifyAck, PrestoPaySignatureError
 
 app = FastAPI()
 presto: AsyncPrestoPay = ...
@@ -155,6 +173,13 @@ pool: asyncpg.Pool = ...
 async def presto_notify(request: Request) -> Response:
     try:
         event = presto.webhooks.verify(await request.body())
+    except PrestoPaySignatureError:
+        return Response(status_code=401)
+    except Exception as exc:
+        return Response(NotifyAck.for_error(exc), media_type=NotifyAck.CONTENT_TYPE)
+
+    try:
+        payment = await presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
         async with pool.acquire() as connection, connection.transaction():
             inserted = await connection.fetchval(
                 "INSERT INTO presto_webhook_events (event_ref_num) VALUES ($1) "
@@ -162,7 +187,7 @@ async def presto_notify(request: Request) -> Response:
                 event.event_ref_num,
             )
             if inserted is not None:
-                await fulfil(connection, event)
+                await fulfil(connection, event, payment.payment_status)
         body = NotifyAck.OK
     except Exception as exc:
         body = NotifyAck.for_error(exc)

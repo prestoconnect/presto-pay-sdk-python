@@ -5,7 +5,8 @@ contract and the webhook behaviour, see [the samples overview](../README.md).
 
 ## Staging credentials
 
-Use the staging merchant credentials from your Presto onboarding pack. No secrets ship with the sample.
+Use your staging `mid` and `prestoMrn` from Presto, the staging key pair you registered with them, and
+Presto's staging certificate. No secrets ship with the sample.
 
 1. Copy the `.p12` and `.der` files into [`keys/`](keys/). See [`keys/README.md`](keys/README.md). They are
    gitignored.
@@ -43,7 +44,7 @@ Open [http://localhost:8080](http://localhost:8080). Run the tests with `uv run 
 fastapi-store/
 ├── pyproject.toml
 ├── .env.example
-├── keys/                      onboarding key files (gitignored)
+├── keys/                      your staging key files (gitignored)
 ├── src/fastapi_store/
 │   ├── main.py                app: routers, static files, and the lifespan that builds the client
 │   ├── config.py              Settings from .env and the environment, startup logging
