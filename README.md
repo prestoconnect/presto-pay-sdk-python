@@ -130,7 +130,7 @@ payment = presto.payments.init(
     currency_code="MYR",
     notify_url="https://your-app.example/presto/notify",
     redirect_url=f"https://your-app.example/presto/return/{order_id}",
-    allowed_payment_methods=[PaymentMethod.CARD],  # Skip this unless you build your own payment selection page
+    allowed_payment_methods=[PaymentMethod.PM_PG_CARD],  # Skip this unless you build your own payment selection page
 )
 
 # Save payment.payment_ref_num with the order, then send the shopper to Presto.

@@ -29,7 +29,7 @@ payment = presto.payments.init(
     currency_code="MYR",
     redirect_url="https://shop.example/return/order-123",
     notify_url="https://shop.example/presto/notify",
-    allowed_payment_methods=[PaymentMethod.WALLET, PaymentMethod.CARD],  # only for your own selection page
+    allowed_payment_methods=[PaymentMethod.WALLET, PaymentMethod.PM_PG_CARD],  # only for your own selection page
     item_list=[LineItem(item_desc="Tea", quantity=2, unit_amount=500, total_amount=1_000)],
     session_validity=datetime.now(UTC) + timedelta(minutes=15),
 )
