@@ -232,11 +232,7 @@ The gateway can add statuses, so handle an unknown value without failing.
 [CONTRIBUTING.md](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/CONTRIBUTING.md) covers
 building, testing, code style and releasing. Report security issues as described in
 [SECURITY.md](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/SECURITY.md), not in a public
-issue.
-
-`spec/` is a checked-in copy of the shared wire contract and test vectors; the commit it was copied from is
-recorded in [`spec/.source-commit`](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/spec/.source-commit).
-Real merchant or staging credentials never belong in this repository.
+issue. Real merchant or staging credentials never belong in this repository.
 
 ## License
 
