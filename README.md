@@ -39,12 +39,14 @@ Generate the pair yourself with `openssl`; the private key never leaves your sys
 
 ```bash
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out merchant-key.pem
-openssl req -new -x509 -key merchant-key.pem -days 3650 -subj "/CN=Your Company" -outform DER -out merchant.der
+openssl req -new -x509 -key merchant-key.pem -days 99999 -subj "/CN=Your Company" -outform DER -out merchant.der
 ```
 
 `merchant-key.pem` is your private key; keep it secret and out of source control. The SDK also reads a `.p12`
 keystore or an encrypted PEM if that's what you have. Send `merchant.der` (your public key, in the DER format
 Presto requires) to Presto.
+The certificate is valid for 99999 days (until the year 2300), so you won't have to generate a new key pair
+and register it with Presto again.
 
 ### 2. Get your details from Presto
 
