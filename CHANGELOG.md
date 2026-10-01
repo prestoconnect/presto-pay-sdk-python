@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.1.2 - 2026-10-01
+
+Documentation only; no change to the SDK's behaviour.
+
+- The README's key-pair command makes the merchant certificate valid for 99999 days, so it doesn't expire and
+  need registering with Presto again.
+- The README's `init` example uses `PaymentMethod.PM_PG_CARD` as the card method for a merchant's own payment
+  selection page.
+
 ## 0.1.1 - 2026-10-01
 
 - The README is now a getting-started guide: creating your key pair and sending Presto the `.der` public key,
