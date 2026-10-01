@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- The README is now a getting-started guide: creating your key pair and sending Presto the `.der` public key,
+  how a payment flows, a four-step quick start and a payment status table. Reference material moved into
+  `docs/`. The Django, Flask and FastAPI webhook handlers in `docs/webhooks.md` now query the payment and
+  answer HTTP 401 to a `PrestoPaySignatureError`, and `docs/production.md` shows how to convert Presto's `.der`
+  certificate to PEM for an inline `PRESTOPAY_PUBLIC_KEY`.
+- The Flask and FastAPI samples answer HTTP 401 to a webhook that fails with a `PrestoPaySignatureError`,
+  instead of acknowledging it.
+
 ## 0.1.0 - 2026-10-01
 
 First published release.

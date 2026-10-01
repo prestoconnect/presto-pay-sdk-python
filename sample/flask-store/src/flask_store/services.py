@@ -59,16 +59,23 @@ def find_payment(presto: PrestoPay, settings: Settings, txn_ref_num: str) -> Que
     return query
 
 
-def accept_webhook(presto: PrestoPay, store: ActivityStore, body: bytes) -> bytes:
+def accept_webhook(presto: PrestoPay, store: ActivityStore, body: bytes) -> tuple[int, bytes]:
     try:
         event = presto.webhooks.verify(body)
+    except PrestoPaySignatureError as exc:
+        log.warning("Webhook rejected: %s", exc)
+        return 401, b""
+    except Exception as exc:
+        log.warning("Webhook rejected: %s", exc)
+        return 200, NotifyAck.for_error(exc)
+    try:
         if store.has_webhook(event.event_ref_num):
             log.info("Webhook eventRefNum=%s already processed; acknowledging again", event.event_ref_num)
-            return NotifyAck.OK
+            return 200, NotifyAck.OK
         payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
     except Exception as exc:
         log.warning("Webhook not processed: %s", exc)
-        return NotifyAck.for_error(exc)
+        return 200, NotifyAck.for_error(exc)
     log.info(
         "Webhook eventCode=%s success=%s txnRefNum=%s paymentRefNum=%s eventRefNum=%s; queried paymentStatus=%s",
         event.event_code,
@@ -90,7 +97,7 @@ def accept_webhook(presto: PrestoPay, store: ActivityStore, body: bytes) -> byte
             received_at=datetime.now().astimezone(),
         )
     )
-    return NotifyAck.OK
+    return 200, NotifyAck.OK
 
 
 def gateway_failure(exc: PrestoPayError) -> dict[str, Any]:

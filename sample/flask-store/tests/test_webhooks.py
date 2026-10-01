@@ -36,10 +36,10 @@ def test_failed_query_asks_presto_to_resend(client: FlaskClient, gateway: Gatewa
     assert "Recent webhooks" not in client.get("/").get_data(as_text=True)
 
 
-def test_forged_webhook_is_acknowledged_but_not_recorded(client: FlaskClient, gateway: Gateway) -> None:
+def test_forged_webhook_is_rejected_with_401_and_not_recorded(client: FlaskClient, gateway: Gateway) -> None:
     forged = json.loads(webhook())
     forged["amount"] = 1
     status, body, _ = _notify(client, json.dumps(forged).encode())
-    assert (status, body) == (200, b'{"resend":false}')
+    assert (status, body) == (401, b"")
     assert "Recent webhooks" not in client.get("/").get_data(as_text=True)
     assert gateway.requests == []

@@ -62,5 +62,6 @@ that path segment. A bare `/return` shows an explanatory page instead.
   `{"resend":true}` without recording the event, so Presto's redelivery tries again.
 - **Deduplication.** It deduplicates on `event_ref_num`. Presto redelivers an event up to four more times, and
   each redelivery is still acknowledged but listed only once.
-- **Rejected webhooks.** It answers a webhook it rejects (bad signature, foreign `mid`, stale `ts`) with HTTP
-  200 and `NotifyAck.for_error(exc)` (`{"resend":false}`). A permanent failure never asks Presto to resend.
+- **Rejected webhooks.** It answers a webhook that fails signature checks (bad signature, foreign `mid`, stale
+  `ts`) with HTTP 401, and a malformed body with HTTP 200 and `NotifyAck.for_error(exc)` (`{"resend":false}`).
+  A permanent failure never asks Presto to resend.
