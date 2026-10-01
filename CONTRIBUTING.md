@@ -57,6 +57,7 @@ openssl pkcs12 -export -legacy -inkey spec/keys/test-merchant-key.pem -in spec/k
 
 1. Set `__version__` in `src/presto_pay/_version.py` to the release version, and move the CHANGELOG
    `Unreleased` entries under that version.
-2. Commit, then tag, for example `git tag v0.1.0`.
-3. Build with `uv build`, then publish to PyPI.
+2. Commit, then push a matching tag, for example `git tag v0.1.0 && git push origin v0.1.0`.
+3. The tag runs `.github/workflows/release.yml`, which verifies, builds and publishes to PyPI through Trusted
+   Publishing.
 4. Bump `__version__` to the next `.dev0`.

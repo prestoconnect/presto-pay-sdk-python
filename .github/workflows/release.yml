@@ -1,0 +1,54 @@
+name: Release
+
+# Push a tag like v0.1.0 whose version matches src/presto_pay/_version.py. Publishes through PyPI Trusted
+# Publishing, which must list this repository, workflow release.yml and environment pypi as a publisher.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: uv sync --locked
+
+      - name: Check tag matches package version
+        run: |
+          version=$(uv run python -c "import presto_pay; print(presto_pay.__version__)")
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version ${version}" >&2
+            exit 1
+          fi
+          case "${version}" in *dev*) echo "Refusing to release a dev version (${version})" >&2; exit 1;; esac
+
+      - name: Verify (tests, lint, types)
+        run: |
+          uv run pytest
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy
+
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/presto-pay-sdk/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

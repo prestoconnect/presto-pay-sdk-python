@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0 - 2026-10-01
+
+First published release.
+
 - Initial Python 3.11+ SDK: `init`, `query`, `reverse` and `refund`, sync (`PrestoPay`) and async
   (`AsyncPrestoPay`) over one sans-IO core, with a CI test that both send byte-identical requests.
 - Request signing and response verification (RSASSA-PKCS1-v1_5 / SHA-256). Every vector in the vendored

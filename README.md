@@ -1,5 +1,6 @@
 # Presto Pay SDK for Python
 
+[![PyPI](https://img.shields.io/pypi/v/presto-pay-sdk.svg)](https://pypi.org/project/presto-pay-sdk/)
 [![CI](https://github.com/prestoconnect/presto-pay-sdk-python/actions/workflows/ci.yml/badge.svg)](https://github.com/prestoconnect/presto-pay-sdk-python/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/LICENSE)
 
