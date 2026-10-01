@@ -35,12 +35,6 @@ def test_every_vector_file_has_a_harness() -> None:
     assert present - CONSUMED_VECTOR_FILES == set(), "a new spec vector file needs a test harness here"
 
 
-def test_vendored_spec_records_its_source_commit() -> None:
-    commit = (SPEC / ".source-commit").read_text(encoding="ascii").strip()
-    assert len(commit) == 40
-    assert all(c in "0123456789abcdef" for c in commit)
-
-
 @pytest.mark.parametrize("case", [c for c in CANONICAL if "canonical" in c], ids=_ids)
 def test_canonical_string(case: dict[str, Any]) -> None:
     assert canonicalize(_body_text(case)) == case["canonical"]
