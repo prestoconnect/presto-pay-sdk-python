@@ -139,7 +139,9 @@ if payment.payment_url is None:
 return redirect(payment.payment_url)
 ```
 
-`notify_url` must be reachable from the internet; on your own machine, use a tunnel such as ngrok.
+`notify_url` must be reachable from the internet; on your own machine, use a tunnel such as ngrok. For the codes
+you can pass to `allowed_payment_methods`, see
+[Payment methods](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/payment-methods.md).
 
 ### 3. Show the result on your return page
 
@@ -217,6 +219,8 @@ The gateway can add statuses, so handle an unknown value without failing.
 
 ## Next steps
 
+- [Payment methods](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/payment-methods.md):
+  every payment method code, which ones you can use, and passing a code the SDK doesn't list yet.
 - [Payments and errors](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/payments-and-errors.md):
   query, reverse and refund payments; handle errors, timeouts and retries safely.
 - [Webhooks](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/webhooks.md): raw bodies,

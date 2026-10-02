@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- New `docs/payment-methods.md`, linked from the README: every payment method code with its SDK constant,
+  a note that Presto enables payment methods per merchant during onboarding, which methods need a Presto
+  account (the PrestoPay eWallet and Credits, `Card` and the loyalty programmes), which are legacy
+  (`TouchNGo`, `BigLife`), and how to pass a code the SDK doesn't list yet.
 - The Flask and FastAPI samples take a PEM merchant private key and no longer default the environment or the
   key paths: set `PRESTOPAY_ENV`, `PRESTOPAY_PRIVATE_KEY_FILE` and `PRESTOPAY_PUBLIC_KEY_FILE` in `.env`.
 
