@@ -17,8 +17,8 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
-      - run: uv run pytest
+      - run: uv sync --locked --no-build
+      - run: uv run --locked --no-build pytest
 
   minimum-dependencies:
     runs-on: ubuntu-latest
@@ -27,8 +27,8 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.11"
-      - run: uv sync --resolution lowest-direct
-      - run: uv run --no-sync pytest
+      - run: uv sync --resolution lowest-direct --no-build
+      - run: uv run --no-sync --no-build pytest
 
   sample:
     strategy:
@@ -44,8 +44,8 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.13"
-      - run: uv sync --locked
-      - run: uv run pytest
+      - run: uv sync --locked --no-build
+      - run: uv run --locked --no-build pytest
 
   lint:
     runs-on: ubuntu-latest
@@ -54,10 +54,10 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.11"
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
+      - run: uv sync --locked --no-build
+      - run: uv run --locked --no-build ruff check .
+      - run: uv run --locked --no-build ruff format --check .
+      - run: uv run --locked --no-build mypy
 
   package:
     runs-on: ubuntu-latest
@@ -81,5 +81,5 @@ jobs:
       - name: Wheel installs and imports in a clean environment
         run: |
           uv venv /tmp/clean
-          uv pip install --python /tmp/clean dist/*.whl
+          uv pip install --no-config --no-build --python /tmp/clean dist/*.whl
           /tmp/clean/bin/python -c "import presto_pay; print(presto_pay.__version__)"

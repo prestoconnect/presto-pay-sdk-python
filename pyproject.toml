@@ -61,6 +61,10 @@ include = [
     "/LICENSE",
 ]
 
+[tool.uv]
+# CI syncs with --no-build; this project has no wheel to fall back on, so it alone may still be built.
+no-binary-package = ["presto-pay-sdk"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-m", "not staging", "--strict-markers"]

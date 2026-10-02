@@ -19,6 +19,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/flask_store"]
 
+[tool.uv]
+# CI syncs with --no-build; these local projects have no wheel to fall back on, so they alone may still be built.
+no-binary-package = ["presto-pay-sdk", "flask-store"]
+
 [tool.uv.sources]
 presto-pay-sdk = { path = "../..", editable = true }
 
