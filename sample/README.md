@@ -62,7 +62,7 @@ that path segment. A bare `/return` shows an explanatory page instead.
   `{"resend":true}` without changing the order, so Presto's redelivery tries again.
 - **Guarded order update.** The webhook and the return page apply the queried status through the same
   `apply_payment_status`, which finalises an order only if it hasn't been finalised yet and fulfils only on the
-  change into `Authorised`. Presto redelivers an event up to four more times; each redelivery is acknowledged
+  change into `Authorised`. Presto redelivers an event up to ten more times; each redelivery is acknowledged
   and listed, but finds the order already in that status and changes nothing.
 - **Rejected webhooks.** It answers a webhook that fails signature checks (bad signature, foreign `mid`, stale
   `ts`) with HTTP 401, and a malformed body with HTTP 200 and `NotifyAck.for_error(exc)` (`{"resend":false}`).

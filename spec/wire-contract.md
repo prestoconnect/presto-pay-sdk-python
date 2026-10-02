@@ -227,8 +227,8 @@ Full list **[U]**:
 
 **Delivery.** Presto POSTs a signed JSON body to the `notifyUrl` given on init, reverse or refund; the URL must
 be publicly reachable **[C]**. The merchant replies HTTP 200 with `{"resend":false}` (accepted) or
-`{"resend":true}` (resend it) **[C]**. Presto retries on its own backoff of **1, 2, 5 and 10 minutes** after the
-first attempt — five deliveries over roughly 18 minutes **[C]**.
+`{"resend":true}` (resend it) **[C]**. Presto retries on its own backoff of **2, 4, 8, 16, 32, 64, 128, 256, 512 and
+1024 minutes** between attempts — up to 11 deliveries over roughly 34 hours **[C]**.
 
 Three rules follow from the retries:
 
@@ -243,7 +243,7 @@ Three rules follow from the retries:
 - **The freshness window is 15 minutes**, matching §3, because a redelivery carries a **fresh `ts`** **[C]**. A
   redelivery therefore never looks like a replay.
 - **`eventRefNum` is stable across redeliveries of the same event** **[C]**. A handler that fulfils on each
-  delivery double-fulfils up to five times, so the documented guard is on the merchant's order record: apply
+  delivery double-fulfils up to 11 times, so the documented guard is on the merchant's order record: apply
   the queried status with a conditional update that finalises the order only once. **[P]**
 
 **Verification**, in order:

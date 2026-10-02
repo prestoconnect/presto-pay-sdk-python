@@ -41,9 +41,9 @@ verifier = create_webhook_verifier(
 
 ## Guard on the order, not the event
 
-Presto retries a delivery 1, 2, 5 and 10 minutes after the first attempt, which makes up to five deliveries over
-about 18 minutes, and your return page may update the same order first. A handler that fulfils on every
-delivery can fulfil the same order five times.
+Presto resends a notification with a backoff of 2, 4, 8, 16, 32, 64, 128, 256, 512 and 1024 minutes between
+attempts, which makes up to 11 deliveries over about 34 hours, and your return page may update the same order
+first. A handler that fulfils on every delivery can fulfil the same order 11 times.
 
 Check the order record instead of the event. Apply the queried status in one conditional update, so only one
 caller can finalise the order, and fulfil only when that update moved the order into `Authorised`:
