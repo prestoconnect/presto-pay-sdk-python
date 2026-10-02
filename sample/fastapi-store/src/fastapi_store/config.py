@@ -9,8 +9,6 @@ from pathlib import Path
 from dotenv import dotenv_values
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_PRIVATE_KEY_FILE = PROJECT_DIR / "keys" / "presto_rm_keystore.p12"
-DEFAULT_PUBLIC_KEY_FILE = PROJECT_DIR / "keys" / "presto_ext_service_dev.der"
 
 log = logging.getLogger("fastapi_store")
 
@@ -47,13 +45,6 @@ def load_settings(environ: Mapping[str, str] | None = None, env_file: Path | Non
     if env_file is not None and env_file.exists():
         values.update({key: value for key, value in dotenv_values(env_file).items() if value is not None})
     values.update(os.environ if environ is None else environ)
-
-    if not values.get("PRESTOPAY_BASE_URL"):
-        values.setdefault("PRESTOPAY_ENV", "staging")
-    if not values.get("PRESTOPAY_PRIVATE_KEY"):
-        values.setdefault("PRESTOPAY_PRIVATE_KEY_FILE", str(DEFAULT_PRIVATE_KEY_FILE))
-    if not values.get("PRESTOPAY_PUBLIC_KEY"):
-        values.setdefault("PRESTOPAY_PUBLIC_KEY_FILE", str(DEFAULT_PUBLIC_KEY_FILE))
 
     presto_mrn = values.get("PRESTOPAY_MRN", "")
     if not presto_mrn:

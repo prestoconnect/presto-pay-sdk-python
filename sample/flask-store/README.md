@@ -8,16 +8,13 @@ the webhook behaviour, see [the samples overview](../README.md).
 Use your staging `mid` and `prestoMrn` from Presto, the staging key pair you registered with them, and
 Presto's staging certificate. No secrets ship with the sample.
 
-1. Copy the `.p12` and `.der` files into [`keys/`](keys/). See [`keys/README.md`](keys/README.md). They are
-   gitignored.
-2. Copy [`.env.example`](.env.example) to `.env` (also gitignored) and fill in your MID, Presto MRN and keystore
-   password.
+1. Copy your PEM private key (`merchant-key.pem`) and Presto's `.der` certificate into [`keys/`](keys/). See
+   [`keys/README.md`](keys/README.md). They are gitignored.
+2. Copy [`.env.example`](.env.example) to `.env` (also gitignored) and fill in your MID, Presto MRN and key file
+   paths.
 
-| Setting | Default |
-|---------|---------|
-| Environment | `staging` |
-| Private key | `keys/presto_rm_keystore.p12` |
-| Presto public key | `keys/presto_ext_service_dev.der` |
+Nothing has a default: `PRESTOPAY_ENV` (`staging` or `production`, or `PRESTOPAY_BASE_URL` instead),
+`PRESTOPAY_PRIVATE_KEY_FILE` and `PRESTOPAY_PUBLIC_KEY_FILE` are required.
 
 Any value can also come from an exported `PRESTOPAY_*` / `APP_*` environment variable, which takes precedence
 over `.env`. The client is built with `PrestoPay.from_env()`.

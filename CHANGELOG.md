@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The Flask and FastAPI samples take a PEM merchant private key and no longer default the environment or the
+  key paths: set `PRESTOPAY_ENV`, `PRESTOPAY_PRIVATE_KEY_FILE` and `PRESTOPAY_PUBLIC_KEY_FILE` in `.env`.
+
 ## 0.1.2 - 2026-10-01
 
 Documentation only; no change to the SDK's behaviour.
