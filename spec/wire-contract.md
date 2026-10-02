@@ -399,9 +399,9 @@ no rate limiting. Presto retries webhooks on its own backoff. There is no length
 all merchants, and partners are told about rotations.
 
 **Round 2.** `null` renders as the empty string. A webhook's `ts` is refreshed on each delivery attempt.
-`eventRefNum` is stable across redeliveries. The retry schedule is 1, 2, 5 and 10 minutes. `1203` means the
-record was created and may even be successful. `1006` and `1007` do not distinguish malformed from
-failed-to-verify.
+`eventRefNum` is stable across redeliveries. The retry backoff is 2, 4, 8, 16, 32, 64, 128, 256, 512 and 1024
+minutes between attempts. `1203` means the record was created and may even be successful. `1006` and `1007` do not
+distinguish malformed from failed-to-verify.
 
 What remains **[U]** is pass-through behaviour — unknown error codes, the status and payment-method lists,
 `sessionValidity` formatting, resend safety for reverse and refund — where a wrong guess surfaces as an
