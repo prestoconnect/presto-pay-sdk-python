@@ -31,6 +31,7 @@ const publicKey = (() => {
 })();
 
 // §3.4: every key except `signature`, sorted by UTF-16 code unit, values rendered and joined with ':'.
+const byCodeUnit = (a, b) => (a < b ? -1 : 1);
 const render = (value, nullAs) => {
   if (value === null) return nullAs;
   if (typeof value === 'string') return value;
@@ -46,7 +47,7 @@ const canonical = (nullAs, { omitNulls = false } = {}) =>
   Object.keys(body)
     .filter((k) => k !== 'signature')
     .filter((k) => !(omitNulls && body[k] === null))
-    .sort()
+    .sort(byCodeUnit)
     .map((k) => render(body[k], nullAs))
     .join(':');
 

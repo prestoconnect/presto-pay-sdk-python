@@ -30,6 +30,8 @@ const check = (ok, label, detail) => {
 
 const MAX_SAFE = 9007199254740991n;
 
+const byCodeUnit = (a, b) => (a < b ? -1 : 1);
+
 // wire-contract.md §4, written out longhand.
 function canonicalize(text) {
   const body = JSON.parse(text, (_key, value) => {
@@ -48,7 +50,7 @@ function canonicalize(text) {
   }
   return Object.keys(body)
     .filter((k) => k !== 'signature')
-    .sort()
+    .sort(byCodeUnit)
     .map((k) => {
       const v = body[k];
       if (v === null) return '';
