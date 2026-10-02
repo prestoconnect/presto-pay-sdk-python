@@ -50,6 +50,7 @@ def payment_result(txn_ref_num: str) -> str:
         log.warning("Query failed for txnRefNum=%s: %s", txn_ref_num, exc)
         context |= _query_error(exc)
     else:
+        services.apply_payment_status(store, txn_ref_num, query.payment_status)
         context |= _payment_summary(query)
     return render_template("return.html", **context)
 

@@ -242,9 +242,9 @@ Three rules follow from the retries:
   after one, is **[U]**.
 - **The freshness window is 15 minutes**, matching §3, because a redelivery carries a **fresh `ts`** **[C]**. A
   redelivery therefore never looks like a replay.
-- **`eventRefNum` is stable across redeliveries of the same event** **[C]**, so it is the deduplication key, and
-  the ~18-minute schedule sizes the retention. A handler that fulfils on each delivery double-fulfils up to five
-  times.
+- **`eventRefNum` is stable across redeliveries of the same event** **[C]**. A handler that fulfils on each
+  delivery double-fulfils up to five times, so the documented guard is on the merchant's order record: apply
+  the queried status with a conditional update that finalises the order only once. **[P]**
 
 **Verification**, in order:
 
@@ -256,8 +256,8 @@ Three rules follow from the retries:
    verifier takes a set of IDs and reports which matched, because one endpoint serving several `mid`s is normal.
    **[P]**
 5. Freshness: reject if `|now − ts|` exceeds the window in either direction, as a signature error; a malformed
-   `ts` is a malformed body. Widening or disabling the check is acceptable only where `eventRefNum` is
-   deduplicated. **[P]**
+   `ts` is a malformed body. Widening or disabling the check is acceptable only where the order update is
+   guarded that way. **[P]**
 
 Event codes, open-ended **[U]**: `Authorised`, `Cancelled`, `Reversed`, `Refunded`, `Expired`.
 

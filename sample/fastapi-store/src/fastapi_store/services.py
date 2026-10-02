@@ -71,25 +71,21 @@ async def accept_webhook(presto: AsyncPrestoPay, store: ActivityStore, body: byt
         log.warning("Webhook rejected: %s", exc)
         return 200, NotifyAck.for_error(exc)
     try:
-        if store.has_webhook(event.event_ref_num):
-            log.info("Webhook eventRefNum=%s already processed; acknowledging again", event.event_ref_num)
-            return 200, NotifyAck.OK
         payment = await presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
     except Exception as exc:
         log.warning("Webhook not processed: %s", exc)
         return 200, NotifyAck.for_error(exc)
     log.info(
-        "Webhook eventCode=%s success=%s txnRefNum=%s paymentRefNum=%s eventRefNum=%s; queried paymentStatus=%s",
+        "Webhook eventCode=%s success=%s txnRefNum=%s paymentRefNum=%s; queried paymentStatus=%s",
         event.event_code,
         event.success,
         event.txn_ref_num,
         event.payment_ref_num,
-        event.event_ref_num,
         payment.payment_status,
     )
+    apply_payment_status(store, event.txn_ref_num, payment.payment_status)
     store.record_webhook(
         WebhookRecord(
-            event_ref_num=event.event_ref_num,
             txn_ref_num=event.txn_ref_num,
             event_code=event.event_code,
             payment_status=payment.payment_status,
@@ -100,6 +96,18 @@ async def accept_webhook(presto: AsyncPrestoPay, store: ActivityStore, body: byt
         )
     )
     return 200, NotifyAck.OK
+
+
+def apply_payment_status(store: ActivityStore, txn_ref_num: str, status: str | None) -> None:
+    if not status:
+        return
+    change = store.apply_payment_status(txn_ref_num, status)
+    if change.fulfil:
+        log.info("Order txnRefNum=%s paid; fulfilling it", txn_ref_num)
+    elif change.changed:
+        log.info("Order txnRefNum=%s is now %s", txn_ref_num, status)
+    else:
+        log.info("Order txnRefNum=%s already finalised; %s changes nothing", txn_ref_num, status)
 
 
 def gateway_failure(exc: PrestoPayError) -> dict[str, Any]:

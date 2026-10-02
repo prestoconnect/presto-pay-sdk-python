@@ -105,10 +105,10 @@ which never send any bytes.
 - [ ] Load the private key and its password from a secret store, not from source control or the image.
 - [ ] Make `notify_url` a public HTTPS URL that Presto can reach.
 - [ ] Have your return page `query` the payment instead of trusting the redirect.
-- [ ] Have your webhook handler verify the raw body, `query` the payment, deduplicate on `event_ref_num` under a
-      unique constraint, return 401 for a `PrestoPaySignatureError`, and reply `NotifyAck.RESEND` when your own
+- [ ] Have your webhook handler verify the raw body, `query` the payment, apply its status with a guarded update that
+      finalises an order only once and fulfils only on the change into `Authorised`, return 401 for a `PrestoPaySignatureError`, and reply `NotifyAck.RESEND` when your own
       processing fails.
-- [ ] Store `txn_ref_num`, `payment_ref_num` and the webhook `event_ref_num`s. After a timeout or server error,
+- [ ] Store `txn_ref_num`, `payment_ref_num` and the order's payment status. After a timeout or server error,
       call `init` again with the same `txn_ref_num`, and query before retrying `reverse` or `refund`, as in
       [Payments and errors](payments-and-errors.md#when-you-dont-know-whether-it-worked).
 - [ ] Keep the host clock in sync with NTP.

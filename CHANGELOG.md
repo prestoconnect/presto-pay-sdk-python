@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Webhook guidance now guards on the order record instead of deduplicating on `event_ref_num`: the handler
+  queries the payment on every delivery and applies its status with a conditional update that finalises an
+  order only once and fulfils only on the change into `Authorised`. Updated the README, `docs/webhooks.md`
+  (including the Django, Flask and FastAPI handlers), `docs/production.md`, the wire contract, the
+  `max_timestamp_age` error message, and the Flask and FastAPI samples, whose return page and webhook now share
+  one guarded update.
 - New `docs/payment-methods.md`, linked from the README: every payment method code with its SDK constant,
   a note that Presto enables payment methods per merchant during onboarding, which methods need a Presto
   account (the PrestoPay eWallet and Credits, `Card` and the loyalty programmes), which are legacy

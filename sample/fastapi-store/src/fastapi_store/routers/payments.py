@@ -58,6 +58,7 @@ async def payment_result(
         log.warning("Query failed for txnRefNum=%s: %s", txn_ref_num, exc)
         context |= _query_error(exc)
     else:
+        services.apply_payment_status(activity, txn_ref_num, query.payment_status)
         context |= _payment_summary(query)
     return templates.TemplateResponse(request, "return.html", context)
 

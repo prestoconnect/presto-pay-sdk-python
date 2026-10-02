@@ -39,16 +39,52 @@ verifier = create_webhook_verifier(
 )
 ```
 
-## Deduplicate on `event_ref_num`
+## Guard on the order, not the event
 
 Presto retries a delivery 1, 2, 5 and 10 minutes after the first attempt, which makes up to five deliveries over
-about 18 minutes. Each redelivery carries a fresh `ts`, so it always passes the freshness check. `event_ref_num`
-stays the same across redeliveries, which makes it the deduplication key. A handler that fulfils on every
+about 18 minutes, and your return page may update the same order first. A handler that fulfils on every
 delivery can fulfil the same order five times.
 
-Make the deduplication atomic with the fulfilment: insert `event_ref_num` into a table with a unique constraint,
-in the same transaction as the fulfilment. Then a duplicate is a no-op, and a crash rolls both back so the
-redelivery can try again.
+Check the order record instead of the event. Apply the queried status in one conditional update, so only one
+caller can finalise the order, and fulfil only when that update moved the order into `Authorised`:
+
+```sql
+UPDATE orders SET status = %s WHERE txn_ref_num = %s AND status = 'PendingAuthorise'
+```
+
+Once an order is finalised, apply only the statuses that can follow payment (`PendingRefund`,
+`PartialRefunded`, `Refunded`, `PendingReverse`, `Reversed`), never fulfil again, and never let an older status
+overwrite `Refunded` or `Reversed`. Create the fulfilment job in the same transaction as the update, so a crash
+rolls both back and the redelivery can try again. A redelivery, a replay, or a webhook that arrives after the
+return page then finds the order already in that status and does nothing.
+
+The handlers below call an `apply_payment_status` function like this Django one; the Flask and FastAPI versions
+issue the same two updates:
+
+```python
+from django.db import transaction
+from presto_pay import PaymentStatus
+
+from .models import FulfilmentJob, Order
+
+PAID_AND_STILL_OPEN = [
+    PaymentStatus.AUTHORISED,
+    PaymentStatus.PENDING_REVERSE,
+    PaymentStatus.PENDING_REFUND,
+    PaymentStatus.PARTIAL_REFUNDED,
+]
+AFTER_PAYMENT = [*PAID_AND_STILL_OPEN, PaymentStatus.REVERSED, PaymentStatus.REFUNDED]
+
+
+def apply_payment_status(txn_ref_num: str, status: str) -> None:
+    with transaction.atomic():
+        orders = Order.objects.filter(txn_ref_num=txn_ref_num)
+        finalised = orders.filter(status=PaymentStatus.PENDING_AUTHORISE).update(status=status)
+        if finalised and status == PaymentStatus.AUTHORISED:
+            FulfilmentJob.objects.create(txn_ref_num=txn_ref_num)
+        elif not finalised and status in AFTER_PAYMENT:
+            orders.filter(status__in=PAID_AND_STILL_OPEN).exclude(status=status).update(status=status)
+```
 
 ## Choosing the reply
 
@@ -81,20 +117,18 @@ It also covers cases that the event code alone can't settle, such as a failed re
 previous state.
 
 If the `query` fails, `NotifyAck.for_error` answers `{"resend":true}`, and Presto redelivers the event so you can
-try again. Record `event_ref_num` only after you have processed the event, so a redelivery isn't mistaken for a
-duplicate.
+try again.
 
 ## Django
 
 ```python
-from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from presto_pay import NotifyAck, PrestoPaySignatureError
 
-from .models import PrestoWebhookEvent  # event_ref_num = models.CharField(max_length=64, unique=True)
-from .payments import presto, fulfil
+from .orders import apply_payment_status
+from .payments import presto
 
 
 @csrf_exempt
@@ -109,12 +143,7 @@ def presto_notify(request):
 
     try:
         payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
-        try:
-            with transaction.atomic():
-                PrestoWebhookEvent.objects.create(event_ref_num=event.event_ref_num)
-                fulfil(event, payment.payment_status)
-        except IntegrityError:
-            pass
+        apply_payment_status(event.txn_ref_num, payment.payment_status)
         body = NotifyAck.OK
     except Exception as exc:
         body = NotifyAck.for_error(exc)
@@ -126,7 +155,6 @@ def presto_notify(request):
 ```python
 from flask import Flask, request
 from presto_pay import NotifyAck, PrestoPaySignatureError
-from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 
@@ -142,14 +170,8 @@ def presto_notify():
 
     try:
         payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
-        try:
-            db.session.add(WebhookEvent(event_ref_num=event.event_ref_num))  # unique column
-            db.session.flush()
-        except IntegrityError:
-            db.session.rollback()
-        else:
-            fulfil(event, payment.payment_status)
-            db.session.commit()
+        apply_payment_status(db.session, event.txn_ref_num, payment.payment_status)
+        db.session.commit()
         body = NotifyAck.OK
     except Exception as exc:
         db.session.rollback()
@@ -162,7 +184,7 @@ def presto_notify():
 ```python
 import asyncpg
 from fastapi import FastAPI, Request, Response
-from presto_pay import AsyncPrestoPay, NotifyAck, PrestoPaySignatureError
+from presto_pay import AsyncPrestoPay, NotifyAck, PaymentStatus, PrestoPaySignatureError
 
 app = FastAPI()
 presto: AsyncPrestoPay = ...
@@ -181,13 +203,16 @@ async def presto_notify(request: Request) -> Response:
     try:
         payment = await presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
         async with pool.acquire() as connection, connection.transaction():
-            inserted = await connection.fetchval(
-                "INSERT INTO presto_webhook_events (event_ref_num) VALUES ($1) "
-                "ON CONFLICT DO NOTHING RETURNING event_ref_num",
-                event.event_ref_num,
+            finalised = await connection.fetchval(
+                "UPDATE orders SET status = $1 WHERE txn_ref_num = $2 AND status = 'PendingAuthorise' "
+                "RETURNING txn_ref_num",
+                payment.payment_status,
+                event.txn_ref_num,
             )
-            if inserted is not None:
-                await fulfil(connection, event, payment.payment_status)
+            if finalised is not None and payment.payment_status == PaymentStatus.AUTHORISED:
+                await enqueue_fulfilment(connection, event.txn_ref_num)
+            elif finalised is None:
+                await apply_status_after_payment(connection, event.txn_ref_num, payment.payment_status)
         body = NotifyAck.OK
     except Exception as exc:
         body = NotifyAck.for_error(exc)
@@ -198,5 +223,5 @@ async def presto_notify(request: Request) -> Response:
 
 The 15-minute window matches the gateway's own request window. If your host queues notifications before
 verifying them, you can widen it with `WebhookOptions(max_timestamp_age=...)` on the client, or
-`max_timestamp_age=` on `create_webhook_verifier`. `None` disables the check. Widen or disable it only if you
-deduplicate on `event_ref_num`.
+`max_timestamp_age=` on `create_webhook_verifier`. `None` disables the check. Widen or disable it only if your
+order update is guarded as in [Guard on the order, not the event](#guard-on-the-order-not-the-event).

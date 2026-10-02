@@ -95,7 +95,7 @@ class WebhookVerifier:
                 raise PrestoPaySignatureError(
                     f"Webhook ts {event.ts} is {age:+.0f}s from this host's clock ({format_epoch_seconds(now)}), "
                     f"outside the {self._max_age:.0f}s window. Check the host clock; widen max_timestamp_age "
-                    "only if you deduplicate on event_ref_num",
+                    "only if your order update finalises an order only once",
                     operation="webhook",
                     source="webhook",
                 )

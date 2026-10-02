@@ -181,18 +181,20 @@ def presto_notify():
     except Exception as exc:
         return NotifyAck.for_error(exc), 200, {"Content-Type": NotifyAck.CONTENT_TYPE}  # malformed body
 
-    if not orders.is_event_handled(event.event_ref_num):
-        try:
-            payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
-            orders.update_status(event.txn_ref_num, payment.payment_status, event.event_ref_num)
-        except Exception:
-            return NotifyAck.RESEND, 200, {"Content-Type": NotifyAck.CONTENT_TYPE}
+    try:
+        payment = presto.payments.query(presto_mrn=event.presto_mrn, payment_ref_num=event.payment_ref_num)
+        orders.apply_status(event.txn_ref_num, payment.payment_status)
+    except Exception:
+        return NotifyAck.RESEND, 200, {"Content-Type": NotifyAck.CONTENT_TYPE}
     return NotifyAck.OK, 200, {"Content-Type": NotifyAck.CONTENT_TYPE}
 ```
 
 `NotifyAck.OK` tells Presto the event is handled. `NotifyAck.RESEND` asks Presto to deliver it again (after 1,
-2, 5 and 10 minutes), which you want when your own processing failed. Presto redelivers an event with the same
-`event_ref_num`, so record it once handled and skip it on later deliveries. See
+2, 5 and 10 minutes), which you want when your own processing failed.
+
+The same event can arrive more than once, so `apply_status` checks the order, not the event: it finalises the
+order only if the order hasn't been finalised yet, and fulfils only on the change into `Authorised`. A
+redelivery then finds the order already in that status and changes nothing. See
 [Webhooks](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/webhooks.md) for the details.
 
 Update the order the same way from your return page and your webhook: whichever arrives first records the
@@ -224,7 +226,7 @@ The gateway can add statuses, so handle an unknown value without failing.
 - [Payments and errors](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/payments-and-errors.md):
   query, reverse and refund payments; handle errors, timeouts and retries safely.
 - [Webhooks](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/webhooks.md): raw bodies,
-  replies, redelivery, deduplication, and complete Django, Flask and FastAPI handlers.
+  replies, redelivery, guarding the order update, and complete Django, Flask and FastAPI handlers.
 - [Production](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/production.md):
   configuration, keys, several merchants, custom HTTP clients, the go-live checklist and troubleshooting.
 - [Samples](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/sample/README.md): a runnable
