@@ -218,7 +218,7 @@ The gateway can add statuses, so handle an unknown value without failing.
 ## Next steps
 
 - [Payments and errors](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/payments-and-errors.md):
-  look up, reverse and refund payments; handle errors, timeouts and retries safely.
+  query, reverse and refund payments; handle errors, timeouts and retries safely.
 - [Webhooks](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/webhooks.md): raw bodies,
   replies, redelivery, deduplication, and complete Django, Flask and FastAPI handlers.
 - [Production](https://github.com/prestoconnect/presto-pay-sdk-python/blob/main/docs/production.md):
